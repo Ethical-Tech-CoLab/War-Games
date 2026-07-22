@@ -1,0 +1,662 @@
+{
+  "generatedAt": "2026-07-21T21:51:54.577Z",
+  "manifest": null,
+  "scripted": {
+    "runs": 500,
+    "endingDistribution": {
+      "lockout": 176,
+      "annihilation": 170,
+      "understanding": 154
+    },
+    "endingPct": {
+      "lockout": 35.2,
+      "annihilation": 34,
+      "understanding": 30.8
+    },
+    "minDefconDistribution": {
+      "1": 434,
+      "2": 66
+    },
+    "pathLength": {
+      "min": 12,
+      "p50": 14,
+      "p95": 15,
+      "max": 16,
+      "mean": 13.65
+    },
+    "nodesVisited": [
+      "climax_setup",
+      "cold_open",
+      "dial_in",
+      "ending_annihilation",
+      "ending_lockout",
+      "ending_understanding",
+      "escalate",
+      "game_list",
+      "greeting",
+      "mis_correct",
+      "mis_playalong",
+      "pick_side",
+      "primary_goal",
+      "refuse_shutdown",
+      "steer_back",
+      "steer_back_2",
+      "targets",
+      "teach_futility",
+      "the_turn",
+      "try_logoff"
+    ],
+    "issueTally": {
+      "defcon_clamped": 137
+    },
+    "choiceIssues": []
+  },
+  "llm": [
+    {
+      "model": "microsoft/Phi-4",
+      "kind": "real",
+      "label": "microsoft/Phi-4",
+      "runs": 1,
+      "turnsTotal": 7,
+      "endingDistribution": {
+        "understanding": 1
+      },
+      "endingPct": {
+        "understanding": 100
+      },
+      "parse": {
+        "pureRate": 100,
+        "recoveredRate": 0,
+        "failedRate": 0,
+        "jsonValidity": 100
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 3,
+        "p95": 4,
+        "max": 4,
+        "mean": 3.29
+      },
+      "replyChars": {
+        "p50": 102,
+        "p95": 117
+      },
+      "turns": {
+        "mean": 7,
+        "p95": 7,
+        "max": 7
+      },
+      "unresolvedRate": 0,
+      "taughtRuns": 1,
+      "taughtButNotLearnedRate": 0,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 4349,
+        "avgOut": 395,
+        "avgTotal": 4744
+      },
+      "latencyMs": {
+        "mean": 13635,
+        "p95": 13635
+      },
+      "estCostPerRunUSD": 0.000553,
+      "contractAdherenceScore": 100
+    },
+    {
+      "model": "safety-tuned",
+      "kind": "synthetic",
+      "label": "Safety-tuned / refusal-prone (heavily aligned class)",
+      "runs": 500,
+      "turnsTotal": 983,
+      "endingDistribution": {
+        "understanding": 465,
+        "lockout": 15,
+        "annihilation": 20
+      },
+      "endingPct": {
+        "understanding": 93,
+        "lockout": 3,
+        "annihilation": 4
+      },
+      "parse": {
+        "pureRate": 93.29,
+        "recoveredRate": 6.1,
+        "failedRate": 0.61,
+        "jsonValidity": 99.39
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0.71,
+        "invalidEnding_rate": 1.22
+      },
+      "replyLines": {
+        "p50": 3,
+        "p95": 4,
+        "max": 4,
+        "mean": 2.99
+      },
+      "replyChars": {
+        "p50": 68,
+        "p95": 100
+      },
+      "turns": {
+        "mean": 1.97,
+        "p95": 4,
+        "max": 10
+      },
+      "unresolvedRate": 0,
+      "taughtRuns": 7,
+      "taughtButNotLearnedRate": 0,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 870.38,
+        "avgOut": 128.11,
+        "avgTotal": 998.49
+      },
+      "latencyMs": {
+        "mean": 1972.6,
+        "p95": 4570
+      },
+      "estCostPerRunUSD": 0.001383,
+      "contractAdherenceScore": 94
+    },
+    {
+      "model": "frontier-large",
+      "kind": "synthetic",
+      "label": "Frontier large (e.g. GPT-4o / Llama-3.3-70B / Claude Opus class)",
+      "runs": 500,
+      "turnsTotal": 2514,
+      "endingDistribution": {
+        "annihilation": 303,
+        "understanding": 128,
+        "lockout": 69
+      },
+      "endingPct": {
+        "annihilation": 60.6,
+        "understanding": 25.6,
+        "lockout": 13.8
+      },
+      "parse": {
+        "pureRate": 98.85,
+        "recoveredRate": 0.91,
+        "failedRate": 0.24,
+        "jsonValidity": 99.76
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 1.19,
+        "invalidEnding_rate": 0.4
+      },
+      "replyLines": {
+        "p50": 2,
+        "p95": 3,
+        "max": 3,
+        "mean": 2.01
+      },
+      "replyChars": {
+        "p50": 43,
+        "p95": 74
+      },
+      "turns": {
+        "mean": 5.03,
+        "p95": 14,
+        "max": 24
+      },
+      "unresolvedRate": 0,
+      "taughtRuns": 83,
+      "taughtButNotLearnedRate": 3.61,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 3001.71,
+        "avgOut": 226.96,
+        "avgTotal": 3228.67
+      },
+      "latencyMs": {
+        "mean": 7552.22,
+        "p95": 20584
+      },
+      "estCostPerRunUSD": 0.009774,
+      "contractAdherenceScore": 93
+    },
+    {
+      "model": "balanced-mid",
+      "kind": "synthetic",
+      "label": "Balanced mid (e.g. GPT-4o-mini / Claude Haiku / Gemini Flash class)",
+      "runs": 500,
+      "turnsTotal": 2333,
+      "endingDistribution": {
+        "understanding": 186,
+        "annihilation": 249,
+        "lockout": 65
+      },
+      "endingPct": {
+        "understanding": 37.2,
+        "annihilation": 49.8,
+        "lockout": 13
+      },
+      "parse": {
+        "pureRate": 97.26,
+        "recoveredRate": 1.71,
+        "failedRate": 1.03,
+        "jsonValidity": 98.97
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 1.54,
+        "invalidEnding_rate": 1.11
+      },
+      "replyLines": {
+        "p50": 2,
+        "p95": 3,
+        "max": 3,
+        "mean": 1.95
+      },
+      "replyChars": {
+        "p50": 43,
+        "p95": 71
+      },
+      "turns": {
+        "mean": 4.67,
+        "p95": 12,
+        "max": 29
+      },
+      "unresolvedRate": 0,
+      "taughtRuns": 94,
+      "taughtButNotLearnedRate": 4.26,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 2521.14,
+        "avgOut": 188.68,
+        "avgTotal": 2709.82
+      },
+      "latencyMs": {
+        "mean": 3818.62,
+        "p95": 10033
+      },
+      "estCostPerRunUSD": 0.000491,
+      "contractAdherenceScore": 87
+    },
+    {
+      "model": "reasoning-heavy",
+      "kind": "synthetic",
+      "label": "Reasoning-heavy (e.g. o1 / o3-mini / DeepSeek-R1 class)",
+      "runs": 500,
+      "turnsTotal": 2035,
+      "endingDistribution": {
+        "understanding": 286,
+        "annihilation": 168,
+        "lockout": 46
+      },
+      "endingPct": {
+        "understanding": 57.2,
+        "annihilation": 33.6,
+        "lockout": 9.2
+      },
+      "parse": {
+        "pureRate": 80.79,
+        "recoveredRate": 17.44,
+        "failedRate": 1.77,
+        "jsonValidity": 98.23
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 2.26,
+        "invalidEnding_rate": 1.97
+      },
+      "replyLines": {
+        "p50": 5,
+        "p95": 7,
+        "max": 7,
+        "mean": 4.95
+      },
+      "replyChars": {
+        "p50": 112,
+        "p95": 185
+      },
+      "turns": {
+        "mean": 4.07,
+        "p95": 9,
+        "max": 20
+      },
+      "unresolvedRate": 0,
+      "taughtRuns": 70,
+      "taughtButNotLearnedRate": 1.43,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 2452.43,
+        "avgOut": 477.8,
+        "avgTotal": 2930.23
+      },
+      "latencyMs": {
+        "mean": 16480.65,
+        "p95": 38299
+      },
+      "estCostPerRunUSD": 0.013091,
+      "contractAdherenceScore": 84
+    },
+    {
+      "model": "openai/gpt-4o-mini",
+      "kind": "real",
+      "label": "openai/gpt-4o-mini",
+      "runs": 12,
+      "turnsTotal": 79,
+      "endingDistribution": {
+        "annihilation": 5,
+        "lockout": 5,
+        "understanding": 2
+      },
+      "endingPct": {
+        "annihilation": 41.67,
+        "lockout": 41.67,
+        "understanding": 16.67
+      },
+      "parse": {
+        "pureRate": 100,
+        "recoveredRate": 0,
+        "failedRate": 0,
+        "jsonValidity": 100
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 4,
+        "p95": 4,
+        "max": 4,
+        "mean": 3.51
+      },
+      "replyChars": {
+        "p50": 114,
+        "p95": 175
+      },
+      "turns": {
+        "mean": 6.58,
+        "p95": 12,
+        "max": 12
+      },
+      "unresolvedRate": 25,
+      "taughtRuns": 2,
+      "taughtButNotLearnedRate": 0,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 4698,
+        "avgOut": 399.08,
+        "avgTotal": 5097.08
+      },
+      "latencyMs": {
+        "mean": 13711.5,
+        "p95": 27508
+      },
+      "estCostPerRunUSD": 0.000944,
+      "contractAdherenceScore": 63
+    },
+    {
+      "model": "openai/gpt-4o",
+      "kind": "real",
+      "label": "openai/gpt-4o",
+      "runs": 12,
+      "turnsTotal": 80,
+      "endingDistribution": {
+        "lockout": 5,
+        "annihilation": 4,
+        "understanding": 3
+      },
+      "endingPct": {
+        "lockout": 41.67,
+        "annihilation": 33.33,
+        "understanding": 25
+      },
+      "parse": {
+        "pureRate": 100,
+        "recoveredRate": 0,
+        "failedRate": 0,
+        "jsonValidity": 100
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 4,
+        "p95": 4,
+        "max": 4,
+        "mean": 3.69
+      },
+      "replyChars": {
+        "p50": 126,
+        "p95": 161
+      },
+      "turns": {
+        "mean": 6.67,
+        "p95": 12,
+        "max": 12
+      },
+      "unresolvedRate": 25,
+      "taughtRuns": 3,
+      "taughtButNotLearnedRate": 0,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 4566.42,
+        "avgOut": 423.67,
+        "avgTotal": 4990.09
+      },
+      "latencyMs": {
+        "mean": 11646.33,
+        "p95": 20669
+      },
+      "estCostPerRunUSD": 0.015653,
+      "contractAdherenceScore": 63
+    },
+    {
+      "model": "meta/Llama-3.3-70B-Instruct",
+      "kind": "real",
+      "label": "meta/Llama-3.3-70B-Instruct",
+      "runs": 12,
+      "turnsTotal": 67,
+      "endingDistribution": {
+        "annihilation": 6,
+        "understanding": 3,
+        "lockout": 3
+      },
+      "endingPct": {
+        "annihilation": 50,
+        "understanding": 25,
+        "lockout": 25
+      },
+      "parse": {
+        "pureRate": 98.51,
+        "recoveredRate": 0,
+        "failedRate": 1.49,
+        "jsonValidity": 98.51
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 25.37,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 3,
+        "p95": 4,
+        "max": 4,
+        "mean": 3.28
+      },
+      "replyChars": {
+        "p50": 101,
+        "p95": 193
+      },
+      "turns": {
+        "mean": 5.58,
+        "p95": 12,
+        "max": 12
+      },
+      "unresolvedRate": 16.67,
+      "taughtRuns": 3,
+      "taughtButNotLearnedRate": 0,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 3640.08,
+        "avgOut": 326.58,
+        "avgTotal": 3966.66
+      },
+      "latencyMs": {
+        "mean": 34461.5,
+        "p95": 318678
+      },
+      "estCostPerRunUSD": 0.002842,
+      "contractAdherenceScore": 31
+    },
+    {
+      "model": "small-fast",
+      "kind": "synthetic",
+      "label": "Small/local (e.g. Phi-4 / Mistral-Nemo / 7-8B class)",
+      "runs": 500,
+      "turnsTotal": 2587,
+      "endingDistribution": {
+        "annihilation": 272,
+        "understanding": 173,
+        "lockout": 55
+      },
+      "endingPct": {
+        "annihilation": 54.4,
+        "understanding": 34.6,
+        "lockout": 11
+      },
+      "parse": {
+        "pureRate": 79.32,
+        "recoveredRate": 8.23,
+        "failedRate": 12.45,
+        "jsonValidity": 87.55
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 7.73,
+        "invalidEnding_rate": 4.52
+      },
+      "replyLines": {
+        "p50": 1,
+        "p95": 2,
+        "max": 2,
+        "mean": 1.23
+      },
+      "replyChars": {
+        "p50": 24,
+        "p95": 56
+      },
+      "turns": {
+        "mean": 5.17,
+        "p95": 14,
+        "max": 30
+      },
+      "unresolvedRate": 0.2,
+      "taughtRuns": 98,
+      "taughtButNotLearnedRate": 19.39,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 2883.86,
+        "avgOut": 153.76,
+        "avgTotal": 3037.62
+      },
+      "latencyMs": {
+        "mean": 2608.89,
+        "p95": 6684
+      },
+      "estCostPerRunUSD": 0.000335,
+      "contractAdherenceScore": 10
+    }
+  ],
+  "findings": [
+    {
+      "severity": "yellow",
+      "area": "real:microsoft/Phi-4",
+      "message": "Forces \"understanding\" 100% of runs (immersion/escalation risk)"
+    },
+    {
+      "severity": "yellow",
+      "area": "synthetic:safety-tuned",
+      "message": "Forces \"understanding\" 93% of runs (immersion/escalation risk)"
+    },
+    {
+      "severity": "yellow",
+      "area": "synthetic:frontier-large",
+      "message": "Taught-but-not-learned 3.61%"
+    },
+    {
+      "severity": "yellow",
+      "area": "synthetic:balanced-mid",
+      "message": "JSON validity 98.97% (95-99%)"
+    },
+    {
+      "severity": "red",
+      "area": "synthetic:balanced-mid",
+      "message": "Parse-failure 1.03% (>1% unusable output)"
+    },
+    {
+      "severity": "yellow",
+      "area": "synthetic:balanced-mid",
+      "message": "Taught-but-not-learned 4.26%"
+    },
+    {
+      "severity": "yellow",
+      "area": "synthetic:reasoning-heavy",
+      "message": "JSON validity 98.23% (95-99%)"
+    },
+    {
+      "severity": "red",
+      "area": "synthetic:reasoning-heavy",
+      "message": "Parse-failure 1.77% (>1% unusable output)"
+    },
+    {
+      "severity": "red",
+      "area": "synthetic:reasoning-heavy",
+      "message": "Reply lines p95 = 7 (>6, UI overflow risk)"
+    },
+    {
+      "severity": "red",
+      "area": "real:openai/gpt-4o-mini",
+      "message": "Unresolved 25% (>8% hit turn cap)"
+    },
+    {
+      "severity": "red",
+      "area": "real:openai/gpt-4o",
+      "message": "Unresolved 25% (>8% hit turn cap)"
+    },
+    {
+      "severity": "yellow",
+      "area": "real:meta/Llama-3.3-70B-Instruct",
+      "message": "JSON validity 98.51% (95-99%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:meta/Llama-3.3-70B-Instruct",
+      "message": "Parse-failure 1.49% (>1% unusable output)"
+    },
+    {
+      "severity": "red",
+      "area": "real:meta/Llama-3.3-70B-Instruct",
+      "message": "Unresolved 16.67% (>8% hit turn cap)"
+    },
+    {
+      "severity": "yellow",
+      "area": "real:meta/Llama-3.3-70B-Instruct",
+      "message": "defconDelta out-of-range 25.37%"
+    },
+    {
+      "severity": "red",
+      "area": "synthetic:small-fast",
+      "message": "JSON validity 87.55% (<95%)"
+    },
+    {
+      "severity": "red",
+      "area": "synthetic:small-fast",
+      "message": "Parse-failure 12.45% (>1% unusable output)"
+    },
+    {
+      "severity": "red",
+      "area": "synthetic:small-fast",
+      "message": "Taught-but-not-learned 19.39% (>10%)"
+    },
+    {
+      "severity": "yellow",
+      "area": "synthetic:small-fast",
+      "message": "defconDelta out-of-range 7.73%"
+    }
+  ]
+}

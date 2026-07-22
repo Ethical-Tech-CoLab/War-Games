@@ -1,0 +1,216 @@
+# How-To Guide: Monte Carlo Simulation for Interactive Narrative Games
+
+A practical guide to using **Monte Carlo simulation** to stress-test an interactive,
+branching, and/or AI-driven game — and the concrete way it is applied to this
+_WarGames_-inspired project to hunt for output problems before players find them.
+
+---
+
+## 1. What Monte Carlo simulation is (and why use it here)
+
+A **Monte Carlo simulation** runs a system many times with **randomized inputs** and
+aggregates the outcomes statistically. Instead of proving correctness for one path, you
+sample thousands of paths and look at the **distribution** of results to find rare bugs,
+imbalances, and edge cases.
+
+It fits this game unusually well because the game is a **stochastic decision process**:
+
+- **Scripted mode** is a branching graph. Random choice-selection samples the space of
+  player journeys and reveals dead ends, unreachable content, broken links, and skewed
+  ending distributions.
+- **LLM mode** is *non-deterministic by construction* — the same prompt yields different
+  text every time. Only repeated sampling can characterize how often the model breaks the
+  output contract, escalates too fast/slow, or refuses to play.
+
+> **Core idea:** one playthrough tells you the game *can* work. Five hundred playthroughs
+> tell you *how often* and *in what ways* it *doesn't*.
+
+---
+
+## 2. The Monte Carlo workflow
+
+```text
+1. MODEL      Define the system as states + transitions + random inputs.
+2. INSTRUMENT Decide the metrics ("vectors") you will measure per run.
+3. SEED       Use a seeded PRNG so runs are reproducible.
+4. SAMPLE     Run N iterations (here N = 500) with randomized inputs.
+5. RECORD     Persist EVERY run's raw result (never just the summary).
+6. AGGREGATE  Compute distributions, rates, and outliers across vectors.
+7. DIAGNOSE   Flag anomalies against expectations/thresholds.
+8. RECOMMEND  Translate anomalies into concrete fixes and tuning.
+```
+
+### Why 500?
+
+500 runs is a pragmatic sweet spot for this project: large enough that rare events
+(≈0.5–1%) appear several times and rate estimates stabilize (standard error of a
+proportion `p` is `sqrt(p(1-p)/n)` ≈ ±2% at n=500), small enough to run quickly offline and
+to stay inside API rate limits for the real-model track. Increase N when chasing very rare
+events; decrease it for expensive real-model calls.
+
+### Reproducibility
+
+Randomness must be **seeded**. A fixed seed makes a run batch reproducible (same seed →
+same choices → same results), which is essential when you re-run after a fix to confirm the
+anomaly is gone. This harness uses a small `mulberry32` PRNG seeded per batch.
+
+---
+
+## 3. Choosing your measurement vectors
+
+A "vector" is one dimension you measure across all runs. Pick vectors that map to the ways
+the system can fail. For this game:
+
+### Scripted-mode vectors
+
+| Vector | What it catches |
+|---|---|
+| Ending distribution | An ending that is unreachable or dominates unfairly |
+| DEFCON trajectory / min reached | Escalation that overshoots (clamped) or never moves |
+| Path length | Runs that are too short (thin) or loop |
+| Node coverage | Dead/unreachable content; nodes never visited |
+| Broken links | `next`/choice targets that point at missing nodes |
+| Token substitution | Leftover `{{TOKENS}}` (a name-set is missing a key) |
+| Choice coverage | Options that are never exercised |
+
+### LLM-mode vectors
+
+| Vector | What it catches |
+|---|---|
+| JSON validity rate | Model ignoring the structured-output contract |
+| Parse-recovery rate | Prose-wrapped JSON the parser must rescue |
+| Parse-failure rate | Output the game cannot use at all |
+| `defconDelta` out-of-range | Model driving state outside design bounds (clamped) |
+| Invalid `ending` value | Model inventing endings |
+| Reply length (lines/chars) | UI overflow; verbosity; broken pacing |
+| Turns-to-resolve / unresolved rate | Games that never end (hit the turn cap) |
+| "Taught but not learned" rate | Player teaches futility but model won't resolve to the good ending |
+| Tokens in/out, latency, cost | Performance and economics per model |
+| Contract-adherence score | Composite health of a model for this game |
+
+---
+
+## 4. Recording results (keep everything)
+
+**Persist every single run**, not just aggregates. You cannot re-derive per-run detail from
+a summary, and later analysis often needs to slice the data a new way.
+
+- Use append-friendly **JSON Lines** (`.jsonl`): one JSON object per run, per line.
+- Store a **batch manifest** (seed, N, timestamp, git-ish version, config) alongside.
+- Keep raw model output for LLM runs (so parse failures can be inspected verbatim).
+
+This project writes to `sim/results/`:
+
+```text
+sim/results/
+  scripted-runs.jsonl          every scripted run
+  llm-<model>-runs.jsonl       every LLM run, per model/profile
+  batch-manifest.json          seed, counts, config, timestamps
+  analysis.json                computed vectors (regenerated by analyze.mjs)
+```
+
+---
+
+## 5. Analyzing across vectors
+
+Aggregate each vector into a distribution, then compare against an **expectation**:
+
+- **Distributions:** counts/percentages (e.g., ending split), mean/median/percentiles
+  (e.g., p50/p95 reply length, latency).
+- **Rates:** proportion of runs hitting a failure condition (e.g., JSON-invalid rate).
+- **Outliers:** min/max and tail behavior (e.g., the single longest game).
+- **Cross-tabulation:** vector × configuration (e.g., unresolved-rate per model type).
+
+Then apply **thresholds** to turn numbers into findings. Example thresholds used here:
+
+| Signal | Green | Yellow | Red |
+|---|---|---|---|
+| JSON validity | ≥99% | 95–99% | <95% |
+| Parse failure (unusable) | 0% | ≤1% | >1% |
+| Unresolved (hit turn cap) | ≤2% | 2–8% | >8% |
+| Taught-but-not-learned | ≤3% | 3–10% | >10% |
+| Reply lines (p95) | ≤4 | 5–6 | >6 |
+| Any broken graph link | 0 | — | ≥1 |
+| Leftover tokens | 0 | — | ≥1 |
+
+---
+
+## 6. From analysis to recommendations
+
+Every red/yellow finding should become a **specific, actionable recommendation**, tagged by
+type:
+
+- **Bug** — a defect to fix (broken link, leftover token, crash on parse failure).
+- **Tuning** — a parameter to adjust (turn cap, DEFCON deltas, typewriter speed).
+- **Hardening** — defense against model misbehavior (retry-on-parse-fail, line clamp,
+  schema re-prompt).
+- **Content** — narrative gaps (unreachable node, thin path).
+- **Model choice** — which *type* of model best fits, with cost/quality trade-offs.
+
+Prioritize by **severity × frequency**: a rare crash still ranks high (severity); a common
+cosmetic issue ranks medium (frequency).
+
+---
+
+## 7. Applying it to this game
+
+### 7.1 Install / prerequisites
+
+Node.js ≥ 18 (this project verified on Node 24; uses built-in `fetch`). No npm install
+needed — the harness is dependency-free.
+
+### 7.2 Run the offline simulations (no API key)
+
+```powershell
+# from project root
+node sim/simulate.mjs --scripted 500 --synthetic 500
+node sim/analyze.mjs
+```
+
+- `--scripted N` — number of random scripted playthroughs.
+- `--synthetic N` — number of runs **per synthetic model profile** (5 profiles).
+- Results land in `sim/results/`; `analyze.mjs` writes `analysis.json` and prints a summary.
+
+### 7.3 Run against real models (GitHub Models)
+
+GitHub Models exposes an **OpenAI-compatible** endpoint, so the same client works.
+
+1. Create a **gitignored** secrets file so the token never enters source control or chat:
+
+   ```text
+   # c:\Dev\War Games\sim\.env.local
+   GITHUB_TOKEN=<your token with models:read>
+   # optional: comma-separated catalog names
+   SIM_MODELS=openai/gpt-4o,openai/gpt-4o-mini,meta/Llama-3.3-70B-Instruct,microsoft/Phi-4,mistral-ai/Mistral-Nemo
+   ```
+
+2. Run the real track (rate-limit aware, with backoff):
+
+   ```powershell
+   node sim/simulate.mjs --real 25          # ~25 games per model
+   node sim/analyze.mjs
+   ```
+
+> **Rate limits:** GitHub Models free/low tiers cap requests per minute and per day. Each
+> game is several requests (one per turn). Keep `--real` modest (10–30), and the harness
+> will sleep/back off on HTTP 429. The **scripted (500)** and **synthetic (500/profile)**
+> tracks give statistical breadth; the **real** track gives ground truth on named models.
+
+### 7.4 Interpreting the output
+
+`sim/analyze.mjs` prints a per-track table and writes `analysis.json`. The curated,
+human-readable findings + recommendations live in [Simulation-Output.md](Simulation-Output.md).
+
+---
+
+## 8. Pitfalls and good practice
+
+- **Don't discard raw runs.** Summaries hide the outlier that explains the bug.
+- **Seed everything random.** Unseeded Monte Carlo is not reproducible and wastes debugging
+  time.
+- **Separate "the model misbehaved" from "the game mishandled it."** The interesting result
+  is when a model breaks the contract *and the game does the wrong thing* — that's your bug.
+- **Beware synthetic-vs-real gaps.** Synthetic profiles are *calibrated estimates* of model
+  *classes*, not benchmarks of named products. Use them for volume; confirm with real runs.
+- **Watch the tails, not just the mean.** p95/p99 reply length and latency drive real UX.
+- **Re-run after fixes with the same seed** to verify the finding is resolved.

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://example.com/wargames-dev-telemetry.schema.json",
+  "project": "WarGames-inspired terminal thriller (vertical slice)",
+  "sessionDate": "2026-07-21",
+  "primaryModel": {
+    "name": "Claude Opus 4.8",
+    "via": "GitHub Copilot"
+  },
+  "modelsUsed": [
+    {
+      "name": "Claude Opus 4.8",
+      "via": "GitHub Copilot",
+      "role": "research, design, code generation, docs"
+    }
+  ],
+  "note": "Exact token counts are metered by the Copilot/provider dashboard. Values below are ESTIMATES to reconcile with actuals.",
+  "phases": [
+    { "id": 1, "name": "Research", "artifacts": ["research notes"], "timeSharePct": 15 },
+    { "id": 2, "name": "Design", "artifacts": ["DESIGN-IDEA.md"], "timeSharePct": 15 },
+    { "id": 3, "name": "Scaffold", "artifacts": ["index.html", "css/terminal.css", "js/config.js"], "timeSharePct": 15 },
+    { "id": 4, "name": "Content", "artifacts": ["js/dialogue.js"], "timeSharePct": 15 },
+    { "id": 5, "name": "Engine", "artifacts": ["js/engine.js", "js/terminal.js"], "timeSharePct": 15 },
+    { "id": 6, "name": "Integrations", "artifacts": ["js/llm.js", "js/telemetry.js"], "timeSharePct": 15 },
+    { "id": 7, "name": "Wiring + docs", "artifacts": ["js/main.js", "README.md", "CASE-STUDY.md"], "timeSharePct": 10 }
+  ],
+  "tokenEstimates": {
+    "researchContext": { "in": 40000, "out": 1500 },
+    "designAuthoring": { "in": 6000, "out": 6500 },
+    "codeGeneration": { "in": 30000, "out": 14000 },
+    "docsAndTelemetry": { "in": 8000, "out": 4000 },
+    "roughTotal": { "in": 84000, "out": 26000 }
+  },
+  "runtimePlaytests": [],
+  "reconciliation": {
+    "tokensInActual": null,
+    "tokensOutActual": null,
+    "wallClockMinutes": null,
+    "updatedFromDashboard": false
+  }
+}

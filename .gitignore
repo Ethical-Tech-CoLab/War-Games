@@ -1,0 +1,12 @@
+# Secrets — never commit tokens/keys
+sim/.env.local
+.env
+.env.local
+*.key
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

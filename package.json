@@ -1,0 +1,12 @@
+{
+  "name": "wargames-terminal-thriller",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A WarGames-inspired terminal thriller (vertical slice) + Monte Carlo simulation harness.",
+  "type": "module",
+  "scripts": {
+    "sim": "node sim/simulate.mjs --scripted 500 --synthetic 500",
+    "sim:real": "node sim/simulate.mjs --real 25",
+    "analyze": "node sim/analyze.mjs"
+  }
+}

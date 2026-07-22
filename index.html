@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SHALL WE PLAY A GAME?</title>
+    <link rel="stylesheet" href="css/terminal.css" />
+  </head>
+  <body>
+    <div class="monitor">
+      <div id="crt" class="crt">
+      <div class="scanlines" aria-hidden="true"></div>
+      <div class="flicker" aria-hidden="true"></div>
+
+      <!-- Top status bar: DEFCON + telemetry toggle -->
+      <header class="statusbar" id="statusbar" hidden>
+        <div class="defcon" id="defcon">
+          <span class="defcon-label">DEFCON</span>
+          <span class="defcon-value" id="defcon-value">5</span>
+          <div class="defcon-ladder" id="defcon-ladder" aria-hidden="true"></div>
+        </div>
+        <div class="status-right">
+          <span class="mode-badge" id="mode-badge"></span>
+          <button class="ghost-btn" id="sound-btn" type="button">SOUND: ON</button>
+          <button class="ghost-btn" id="telemetry-btn" type="button">TELEMETRY</button>
+          <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
+        </div>
+      </header>
+
+      <!-- Start menu overlay -->
+      <div class="menu-overlay" id="menu-overlay">
+        <div class="menu-panel">
+          <h1 class="menu-title" id="menu-title">SHALL WE PLAY A GAME?</h1>
+          <p class="menu-sub">
+            A terminal thriller inspired by <em>WarGames</em> (1983), with a modern
+            AI-agent framing. The only winning move is to understand the machine.
+          </p>
+
+          <label class="field">
+            <span class="field-label">IDENTITY SET</span>
+            <select id="nameset-select"></select>
+          </label>
+          <p class="field-hint" id="nameset-hint"></p>
+
+          <label class="field">
+            <span class="field-label">EXPERIENCE MODE</span>
+            <select id="mode-select">
+              <option value="scripted">Scripted — hand-authored, deterministic (recommended)</option>
+              <option value="llm">Live AI — the persona is driven by a language model</option>
+            </select>
+          </label>
+
+          <div id="llm-fields" class="llm-fields" hidden>
+            <label class="field">
+              <span class="field-label">API ENDPOINT (OpenAI-compatible)</span>
+              <input id="llm-endpoint" type="text" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span class="field-label">MODEL</span>
+              <input id="llm-model" type="text" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span class="field-label">API KEY (stored only in your browser)</span>
+              <input id="llm-key" type="password" spellcheck="false" autocomplete="off" />
+            </label>
+            <p class="field-hint">
+              GitHub Pages is static, so the model is called directly from your browser
+              with your own key. The key never leaves this device. If a request fails,
+              the game falls back to scripted mode automatically.
+            </p>
+          </div>
+
+          <button class="primary-btn" id="start-btn" type="button">CONNECT</button>
+        </div>
+      </div>
+
+      <!-- Telemetry panel -->
+      <div class="telemetry-overlay" id="telemetry-overlay" hidden>
+        <div class="telemetry-panel">
+          <div class="telemetry-head">
+            <span>SESSION TELEMETRY</span>
+            <button class="ghost-btn" id="telemetry-close" type="button">CLOSE</button>
+          </div>
+          <pre class="telemetry-body" id="telemetry-body"></pre>
+          <div class="telemetry-actions">
+            <button class="ghost-btn" id="telemetry-export" type="button">EXPORT JSON</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main terminal output + input. Serial-terminal order: conversation scrolls up in
+           the output; choices print ABOVE the entry cursor; the cursor sits at the bottom. -->
+      <main class="terminal" id="terminal" hidden>
+        <div class="output" id="output" aria-live="polite"></div>
+        <div class="choices" id="choices"></div>
+        <div class="input-row" id="input-row" hidden>
+          <span class="prompt-caret">&gt;</span>
+          <input
+            id="text-input"
+            class="text-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="terminal input"
+          />
+        </div>
+      </main>
+      </div>
+      <!-- Monitor chin: fake brand plate + power LED for that 1983 feel -->
+      <div class="monitor-chin" aria-hidden="true">
+        <span class="monitor-brand">WOPR / JOSHUA &nbsp;&bull;&nbsp; MODEL 1983</span>
+        <span class="monitor-led" id="power-led"></span>
+      </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
