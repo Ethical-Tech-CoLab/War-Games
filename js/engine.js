@@ -228,9 +228,18 @@ export class GameEngine {
     return /^\s*(yorke|(professor\s+)?rhodes)\s*$/i.test(String(v));
   }
 
-  /** If no key is set but we are served by the local proxy, wire it up automatically. */
+  /** Ensure Live-AI is reachable for berserk mode: use an already-set key, a configured
+   * proxy URL (?proxy= or SETTINGS.llm.proxyUrl), or the local dev proxy. Else false. */
   _ensureLLMConfigured() {
     if (SETTINGS.llm.apiKey) return true;
+    const param =
+      typeof location !== 'undefined' ? new URLSearchParams(location.search).get('proxy') : null;
+    const configured = (param || SETTINGS.llm.proxyUrl || '').trim();
+    if (configured) {
+      SETTINGS.llm.endpoint = configured;
+      SETTINGS.llm.apiKey = 'proxy-managed';
+      return true;
+    }
     if (typeof location !== 'undefined' && location.port === '8787') {
       SETTINGS.llm.endpoint = '/v1/chat/completions';
       SETTINGS.llm.model = SETTINGS.llm.model || 'openai/gpt-4o-mini';

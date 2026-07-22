@@ -19,6 +19,7 @@ const els = {
   llmEndpoint: document.getElementById('llm-endpoint'),
   llmModel: document.getElementById('llm-model'),
   llmKey: document.getElementById('llm-key'),
+  llmHint: document.getElementById('llm-hint'),
   startBtn: document.getElementById('start-btn'),
   statusbar: document.getElementById('statusbar'),
   terminal: document.getElementById('terminal'),
@@ -56,12 +57,42 @@ function updateNameHint() {
   els.nameHint.textContent = `${set.blurb}  —  system: ${set.SYSTEM}, AI: ${set.PERSONA}, game: ${set.GAME}`;
 }
 
+/**
+ * Decide how Live-AI should reach a model. Precedence:
+ *   1. ?proxy=<url> query override
+ *   2. SETTINGS.llm.proxyUrl (deployed proxy — token handled server-side)
+ *   3. local dev proxy (serve.mjs on :8787)
+ *   4. none → bring-your-own-key against the direct endpoint
+ */
+function resolveProxy() {
+  const param = new URLSearchParams(location.search).get('proxy');
+  const configured = (param || SETTINGS.llm.proxyUrl || '').trim();
+  if (configured) return { url: configured, managed: true, source: 'configured' };
+  if (location.port === '8787' && location.protocol.startsWith('http')) {
+    return { url: '/v1/chat/completions', managed: true, source: 'local' };
+  }
+  return { url: '', managed: false, source: 'none' };
+}
+
+function updateLlmHint(p) {
+  if (!els.llmHint) return;
+  if (p.managed) {
+    els.llmHint.textContent =
+      p.source === 'local'
+        ? 'Using the local proxy (serve.mjs). Token handled server-side — no key needed.'
+        : `Using configured proxy: ${p.url} — token handled server-side, no key needed.`;
+  } else {
+    els.llmHint.textContent =
+      'No AI proxy configured. Enter your own OpenAI-compatible API key (kept in this ' +
+      'browser), or the game will run in Scripted mode. If a request fails it falls back automatically.';
+  }
+}
+
 function prefillLlmFields() {
-  // When served by the local proxy (serve.mjs on :8787), route through it: the token is
-  // injected server-side, so the browser never holds it.
-  const servedByProxy = location.port === '8787';
-  if (servedByProxy && location.protocol.startsWith('http')) {
-    els.llmEndpoint.value = '/v1/chat/completions';
+  const p = resolveProxy();
+  updateLlmHint(p);
+  if (p.managed) {
+    els.llmEndpoint.value = p.url;
     els.llmModel.value = 'openai/gpt-4o-mini';
     els.llmKey.value = 'proxy-managed';
   } else {
@@ -85,21 +116,32 @@ els.modeSelect.addEventListener('change', () => {
 els.startBtn.addEventListener('click', () => {
   const nameSetKey = els.nameSelect.value;
   const names = NAME_SETS[nameSetKey];
-  const mode = els.modeSelect.value;
+  let mode = els.modeSelect.value;
 
   if (mode === 'llm') {
-    SETTINGS.llm.endpoint = els.llmEndpoint.value.trim() || SETTINGS.llm.endpoint;
+    const p = resolveProxy();
     SETTINGS.llm.model = els.llmModel.value.trim() || SETTINGS.llm.model;
-    SETTINGS.llm.apiKey = els.llmKey.value.trim();
-    if (!SETTINGS.llm.apiKey) {
-      alert('Live AI mode needs an API key (stored only in your browser). ' +
-        'Or choose Scripted mode.');
-      return;
-    }
-    try {
-      localStorage.setItem(LLM_KEY_STORE, SETTINGS.llm.apiKey);
-    } catch {
-      /* ignore */
+    if (p.managed) {
+      // Proxy handles auth server-side; no key needed in the browser.
+      SETTINGS.llm.endpoint = p.url;
+      SETTINGS.llm.apiKey = 'proxy-managed';
+    } else {
+      // No proxy: allow bring-your-own-key, else fail gracefully into Scripted mode.
+      SETTINGS.llm.endpoint = els.llmEndpoint.value.trim() || SETTINGS.llm.endpoint;
+      SETTINGS.llm.apiKey = els.llmKey.value.trim();
+      if (!SETTINGS.llm.apiKey) {
+        alert(
+          'Live AI needs a deployed proxy (set SETTINGS.llm.proxyUrl or ?proxy=…) ' +
+            'or your own API key.\n\nNo AI is configured, so the game will run in Scripted mode.'
+        );
+        mode = 'scripted';
+      } else {
+        try {
+          localStorage.setItem(LLM_KEY_STORE, SETTINGS.llm.apiKey);
+        } catch {
+          /* ignore */
+        }
+      }
     }
   }
   SETTINGS.mode = mode;

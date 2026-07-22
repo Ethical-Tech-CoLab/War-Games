@@ -85,6 +85,11 @@ export const SETTINGS = {
   llm: {
     provider: 'openai', // any OpenAI-compatible /chat/completions endpoint
     endpoint: 'https://api.openai.com/v1/chat/completions',
+    // Optional deployed proxy (see the pages-ai-proxy repo). When set, Live-AI mode routes
+    // through it and the token is handled server-side — so Live-AI works on GitHub Pages.
+    // Paste your proxy's full URL, e.g. https://pages-ai-proxy.<sub>.workers.dev/v1/chat/completions
+    // You can also override at runtime with ?proxy=<url> in the page URL.
+    proxyUrl: '',
     model: 'gpt-4o-mini',
     apiKey: '', // set at runtime via the menu; persisted to localStorage by main.js
     temperature: 0.6,

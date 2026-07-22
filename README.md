@@ -44,26 +44,31 @@ configuration:
 2. Settings → Pages → Source: deploy from branch (e.g. `main`, root `/`).
 3. Visit the published URL.
 
-### Why the LLM option still works on GitHub Pages
+### Live-AI on GitHub Pages (via a proxy)
 
-GitHub Pages cannot run server code, so there is **no backend to hold an API key or proxy
-requests**. Live-AI mode solves this by calling an OpenAI-compatible endpoint **directly
-from the browser** using a key **you** enter in the menu. That key is stored only in your
-browser's `localStorage` and is never committed or sent anywhere except the model endpoint
-you configure.
+GitHub Pages can't run server code, so it can't hold a token or bypass CORS (GitHub Models
+blocks direct browser calls). Live-AI on the hosted site therefore routes through a small
+serverless proxy — see the companion [**pages-ai-proxy**](https://github.com/Ethical-Tech-CoLab/pages-ai-proxy)
+repo (Azure Functions / Cloudflare Worker / Node). The proxy injects the provider token
+server-side and adds CORS.
 
-Trade-offs to be aware of:
+To enable Live-AI on the deployed site:
 
-- The key is visible to anyone with access to that browser profile — fine for a personal
-  prototype, **not** appropriate for a shared/public key.
-- The model endpoint must permit browser (CORS) requests. OpenAI's API does; some
-  providers require a specific setup.
-- If any request fails, the game **automatically falls back to scripted mode**, so the
-  experience is never blocked.
+1. Deploy `pages-ai-proxy` and add this site's origin to its `ALLOWED_ORIGINS`.
+2. Set the proxy URL in [js/config.js](js/config.js) → `SETTINGS.llm.proxyUrl`
+   (e.g. `https://pages-ai-proxy.<sub>.workers.dev/v1/chat/completions`), **or** append
+   `?proxy=<url>` to the page URL to test without editing code.
 
-For a production release you would add a tiny serverless proxy (e.g. an Azure Function or
-Cloudflare Worker) to keep the key server-side — but that is out of scope for a static
-GitHub Pages slice.
+Endpoint precedence for Live-AI: `?proxy=` → `SETTINGS.llm.proxyUrl` → local dev proxy
+(`serve.mjs` on :8787) → bring-your-own-key against the direct endpoint.
+
+**Graceful fallback:** if no proxy is configured **and** no API key is entered, Live-AI
+politely declines and the game runs in **Scripted mode** instead (which needs no network).
+Any runtime request failure also falls back to scripted automatically, so the experience is
+never blocked.
+
+> Bring-your-own-key still works for CORS-friendly endpoints like OpenAI's API, but exposes
+> the key in the browser — fine for personal use, not for a shared key.
 
 ---
 
