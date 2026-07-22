@@ -59,6 +59,40 @@ To enable Live-AI on the deployed site:
    (e.g. `https://pages-ai-proxy.<sub>.workers.dev/v1/chat/completions`), **or** append
    `?proxy=<url>` to the page URL to test without editing code.
 
+### Quick link (`?proxy=`)
+
+Append `?proxy=<your-proxy-endpoint>` to the site URL to point Live-AI at your proxy without
+editing any code — handy for testing a freshly deployed proxy:
+
+```text
+https://ethical-tech-colab.github.io/War-Games/?proxy=https://<your-proxy-host>/v1/chat/completions
+```
+
+Real examples depending on how you deployed the proxy:
+
+```text
+# Cloudflare Worker
+…/War-Games/?proxy=https://pages-ai-proxy.<your-subdomain>.workers.dev/v1/chat/completions
+
+# B3IQ + named Cloudflare Tunnel (see pages-ai-proxy deploy/B3IQ.md)
+…/War-Games/?proxy=https://pages-ai-proxy.<your-domain>/v1/chat/completions
+
+# B3IQ + quick tunnel (ephemeral test URL)
+…/War-Games/?proxy=https://<random-words>.trycloudflare.com/v1/chat/completions
+
+# Local proxy for dev
+http://localhost:8787/?proxy=http://localhost:8788/v1/chat/completions
+```
+
+> **Where does `<your-proxy-host>` come from?** It's the public HTTPS hostname of *your*
+> deployed proxy — not something GitHub assigns. Whoever deploys `pages-ai-proxy` gets a URL
+> from their platform: a Cloudflare Worker (`*.workers.dev`), a Cloudflare Tunnel hostname on
+> a domain you control (or a throwaway `*.trycloudflare.com`), or an Azure Function
+> (`*.azurewebsites.net`). Paste that host into `?proxy=` or into `SETTINGS.llm.proxyUrl`.
+
+Once the URL is stable, bake it into [js/config.js](js/config.js) so players don't need the
+query string.
+
 Endpoint precedence for Live-AI: `?proxy=` → `SETTINGS.llm.proxyUrl` → local dev proxy
 (`serve.mjs` on :8787) → bring-your-own-key against the direct endpoint.
 
