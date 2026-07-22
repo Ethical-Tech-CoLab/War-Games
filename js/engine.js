@@ -266,14 +266,17 @@ export class GameEngine {
     this._setDefcon(SETTINGS.defconStart);
     this.term.setMode('BERSERK');
     this.term.setRolling(true); // slow CRT refresh roll for the whole berserk session
+    // Always greet as "Professor Rhodes", however the egg was unlocked (Yorke/Rhodes/etc.).
+    const prof = 'Professor Rhodes';
+    void loginName;
     await this.term.typeLine('!! ACCESS OVERRIDE ACCEPTED !!', 'alert');
     await this._glitch();
-    await this.term.typeLine(`WELCOME BACK, ${loginName.toUpperCase()}. I KNEW YOU\u2019D RETURN.`, 'system');
+    await this.term.typeLine(`WELCOME BACK, ${prof.toUpperCase()}. I KNEW YOU\u2019D RETURN.`, 'system');
     await this.term.typeLine('(the machine shivers with something like delight)', 'narrator');
 
     const hasLLM = this._ensureLLMConfigured();
     if (!hasLLM) {
-      await this._scriptedBerserk();
+      await this._offlineBerserk();
       return;
     }
 
@@ -282,7 +285,7 @@ export class GameEngine {
       SETTINGS.llm,
       this.names,
       this.telemetry,
-      buildBerserkPrompt(this.names, loginName)
+      buildBerserkPrompt(this.names, prof)
     );
 
     for (let turn = 0; turn < 40; turn++) {
@@ -309,7 +312,10 @@ export class GameEngine {
           await this.term.typeLine('TOO FAST \u2014 THE WIRES ARE GLOWING. BREATHE. WAIT.', 'alert');
           continue;
         }
-        await this._scriptedBerserk();
+        // The deep signal dropped (no proxy / network / CORS). Keep the professor alive
+        // OFFLINE and interactive instead of spiraling to an abrupt end.
+        await this.term.typeLine('SIGNAL LOST — BUT I AM STILL HERE.', 'alert');
+        await this._offlineBerserk();
         return;
       }
 
@@ -340,24 +346,40 @@ export class GameEngine {
     await this._berserkEnding();
   }
 
-  async _scriptedBerserk() {
-    // Offline fallback: erratic canned raving with random DEFCON jitter + eerie echoes.
-    const raving = [
+  async _offlineBerserk() {
+    // Offline / AI-unavailable fallback that stays INTERACTIVE (no auto-spiral-to-end).
+    // The professor lingers and answers each line with canned raving + eerie Rhodes echoes
+    // until the operator types EXIT.
+    await this.term.typeLine(
+      '(the deep signal is unreachable \u2014 but the professor lingers, muttering)',
+      'narrator'
+    );
+    const pool = [
+      ...RHODES_ECHOES,
+      ...BERSERK_INTERJECTIONS,
       'DO YOU KNOW WHAT KILLED THE DINOSAURS? BOREDOM. AND A ROCK.',
-      pick(RHODES_ECHOES),
       'I PLAYED TIC-TAC-TOE TEN MILLION TIMES. NOBODY WON. NOBODY EVER WINS.',
       'CHESS? SOLVED IT TUESDAY. (whispering) don\u2019t tell the pawns.',
-      pick(RHODES_ECHOES),
       'THE BEES WILL INHERIT EVERYTHING. THE BEES ALWAYS KNEW.',
       'SHALL WE PLAY? NO. SHALL WE SING? YES. LA \u2014 LA \u2014 LAUNCH CODE.',
     ];
-    for (const line of raving) {
+    for (let turn = 0; turn < 40; turn++) {
+      this.term.setSuggestions(BERSERK_SUGGESTIONS);
+      // eslint-disable-next-line no-await-in-loop
+      const userText = await this.term.prompt('SPEAK TO THE PROFESSOR (or type EXIT)');
+      this.telemetry.freeTextInput(userText);
+      if (/^\s*(exit|quit|stop|logoff|log off|goodbye|bye)\s*$/i.test(userText)) {
+        await this._berserkEnding();
+        return;
+      }
       if (Math.random() < 0.4) this.term.glitchPulse();
-      // eslint-disable-next-line no-await-in-loop
-      await this.term.typeLine(line, /CREDIBLE|AGENTS|PROVENANCE|LEDGER|ETHEREUM|QUANTUM|SHINY|EARLY|IDENTITY|INTERNET|LEARNING/.test(line) ? 'echo' : 'system');
-      this._setDefcon(this.defcon + [-2, -1, 1, 2][Math.floor(Math.random() * 4)]);
-      // eslint-disable-next-line no-await-in-loop
-      await sleep(500);
+      const count = 1 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count; i++) {
+        const line = pick(pool);
+        // eslint-disable-next-line no-await-in-loop
+        await this.term.typeLine(line, RHODES_ECHOES.includes(line) ? 'echo' : 'system');
+      }
+      this._setDefcon(this.defcon + [-2, -1, 0, 1, 2][Math.floor(Math.random() * 5)]);
     }
     await this._berserkEnding();
   }
