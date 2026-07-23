@@ -178,3 +178,21 @@ CASE-STUDY.md         Development telemetry for the case study
   system prompt in `js/llm.js`.
 - Add a serverless proxy for production LLM key safety.
 - Layer sound (modem handshake, key clicks) and the NORAD "big board" as a later beat.
+
+---
+
+## Peer Review
+
+The full independent academic peer review of the simulation study and case study is in [PEER-REVIEW.md](PEER-REVIEW.md) (also available as [Word](peer-review/War-Games-Peer-Review.docx) under [`peer-review/`](peer-review/)).
+
+**Recommendation:** Minor revisions — the three-track study design is sound and the reproducibility is genuine; the issues are in how a very small real-model sample is reported.
+
+**What the review found:**
+
+- **Every Track C conclusion rests on twelve games, and no interval is reported.** The headline finding "Unresolved 25% / 25% / 17%" is 3, 3, and 2 games out of 12. Wilson 95% intervals are 9–53% and 5–45% — near-total overlap, so the apparent gap between the OpenAI models and Llama is one game.
+- **The turn-cap confound is disclosed in §4.2 and dropped everywhere it matters.** Track C ran at `turnCap = 12` against 30 for the synthetic track and the shipped game, and "unresolved" *is* hitting the cap — so §5's reconciliation compares two tracks under different stopping rules. Re-running 12 games × 3 models at cap 30 costs about **$0.23** by the study's own measured costs.
+- **The composite score cannot be reconstructed from any figure in the document.** Llama's 31 is driven mainly by `defconDeltaOOR_rate = 25.37%` — a metric in no table — not by the unresolved penalty the footnote blames, and not by latency, which is not a term in the score at all. That 25% contract-violation rate is probably the study's most useful real finding and it is unpublished.
+- **"0% taught-but-not-learned" is 0 out of 2 or 3 opportunities, not 0 out of 12** — `taughtRuns` is the denominator, so "every time" rests on a handful of events.
+- **Ending distributions mix real endings with force-ends**, since every unresolved game is force-ended as lockout.
+- The synthetic track is reported to two decimal places and is 70× larger than the real track, pushing the eye toward the modelled numbers as the more solid ones.
+- Minor: no LICENSE; the film name set (WOPR / JOSHUA / Falken / NORAD) ships as the public default despite the README's own note to ship an original set; `CASE-STUDY.md` reports time as proportions with no total, and its token and playtest tables are placeholders.
