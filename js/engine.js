@@ -34,6 +34,7 @@ export class GameEngine {
   }
 
   async start() {
+    SETTINGS.ui.sessionTone = 'normal';
     this._setDefcon(SETTINGS.defconStart);
     if (this.mode === 'llm') {
       await this._runLLM();
@@ -304,6 +305,7 @@ export class GameEngine {
   async _runBerserk(loginName) {
     this.term.clear();
     this._berserkLineCap = 4; // reset each session; Prof Rhodes can authorize lifting it
+    SETTINGS.ui.sessionTone = 'berserk'; // chess commentary follows the mad-professor voice
     this._setDefcon(SETTINGS.defconStart);
     this.term.setMode('BERSERK');
     this.term.setRolling(true); // slow CRT refresh roll for the whole berserk session

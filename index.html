@@ -175,6 +175,15 @@
           </div>
         </div>
         <div class="cp-status" id="cp-status">Your move (White).</div>
+        <div class="cp-controls">
+          <label class="cp-check"><input type="checkbox" id="cp-talk" /> Commentary</label>
+          <select id="cp-tone" class="cp-tone" title="Commentary voice">
+            <option value="">Auto (match session)</option>
+            <option value="normal">Normal — Joshua</option>
+            <option value="professor">Professor</option>
+            <option value="berserk">Berserk</option>
+          </select>
+        </div>
         <div class="cp-board" id="cp-board"></div>
         <div class="cp-input-row">
           <input id="cp-move" class="cp-move" type="text" autocomplete="off" spellcheck="false" placeholder="type a move, e.g. e2e4" />

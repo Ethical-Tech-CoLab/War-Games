@@ -878,6 +878,23 @@ input:focus {
   min-height: 1.4em;
 }
 
+.cp-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 4px;
+  font-size: 0.7rem;
+  color: var(--fg-dim);
+}
+.cp-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.cp-check input { accent-color: var(--fg); width: 15px; height: 15px; }
+.cp-tone { flex: 1; font-size: 0.72rem; padding: 3px 6px; }
+
 .cp-board {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -933,6 +950,13 @@ input:focus {
 }
 .cp-log-entry { font-size: 0.72rem; color: var(--fg-dim); }
 .cp-log-entry.w { color: var(--fg); }
+.cp-say {
+  width: 100%;
+  font-style: italic;
+  color: var(--echo);
+  font-size: 0.72rem;
+  margin: 2px 0;
+}
 
 @media (max-width: 600px) {
   html,

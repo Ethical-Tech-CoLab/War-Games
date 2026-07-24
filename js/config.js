@@ -80,6 +80,7 @@ export const SETTINGS = {
   ui: {
     aiMarker: true, // prefix every AI-generated response line with a marker glyph
     aiMarkerChar: '\u25C6', // ◆ — single-character "this came from the model" indicator
+    sessionTone: 'normal', // 'normal' | 'berserk' — drives chess commentary voice by default
   },
 
   // Which experience to run: 'scripted' (deterministic) or 'llm' (dynamic)

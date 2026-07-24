@@ -34,7 +34,7 @@ const telemetry = new Telemetry(SETTINGS.telemetry);
 const audio = new AudioFx();
 const terminal = new Terminal(root);
 terminal.setAudio(audio);
-const chess = new ChessPanel(root);
+const chess = new ChessPanel(root, { audio });
 let chessStarted = false;
 let telemetryTimer = null;
 

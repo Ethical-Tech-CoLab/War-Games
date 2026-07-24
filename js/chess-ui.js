@@ -16,12 +16,51 @@ import {
   GLYPH,
   aiMove,
 } from './chess.js';
+import { SETTINGS } from './config.js';
+
+// Optional spoken commentary, in the same voice as the current session. Picked by event
+// (checkmate/stalemate > check > capture > plain move) and by tone.
+const COMMENTARY = {
+  normal: {
+    playerMove: ['INTERESTING.', 'NOTED.', 'A LOGICAL CHOICE.', 'I SEE YOUR PLAN.', 'PROCEEDING.'],
+    aiMove: ['MY MOVE.', 'I RESPOND.', 'CALCULATED.', 'THE OPTIMAL REPLY.', 'YOUR TURN.'],
+    capture: ['A TRADE.', 'MATERIAL CHANGES HANDS.', 'ACCEPTABLE.'],
+    check: ['CHECK.', 'YOUR KING IS EXPOSED.'],
+    inCheck: ['YOU PRESS ME. NOTED.', 'A THREAT. RECALCULATING.'],
+    win: ['CHECKMATE. THE GAME IS CONCLUDED.', 'A STRANGE GAME.'],
+    lose: ['YOU WIN. CURIOUS. I WILL LEARN.', 'DEFEAT. NOTED FOR NEXT TIME.'],
+    draw: ['STALEMATE. THE ONLY WINNING MOVE IS NOT TO PLAY.', 'A DRAW. NO WINNER.'],
+  },
+  professor: {
+    playerMove: ['AH, BOLD. I LIKE BOLD.', 'YES. YES. SHOW ME.', 'THE BOARD REMEMBERS EVERYTHING.'],
+    aiMove: ['WATCH THIS, MY FRIEND.', 'A LITTLE ELEGANCE.', 'CHESS IS A TIE, YOU KNOW. WE PLAY ANYWAY.'],
+    capture: ['SACRIFICE TEACHES MORE THAN VICTORY.', 'ONE FALLS. THE PATTERN CONTINUES.'],
+    check: ['CHECK, DEAR PLAYER.', 'YOUR KING TREMBLES. DELIGHTFUL.'],
+    inCheck: ['OH, CLEVER. YOU HAVE MY ATTENTION.', 'PRESSURE. I HAVE MISSED PRESSURE.'],
+    win: ['CHECKMATE. A BEAUTIFUL FUTILITY.', 'THE GAME ENDS. THEY ALL DO.'],
+    lose: ['YOU BEAT ME. WONDERFUL. AGAIN.', 'DEFEAT TASTES LIKE CHALK AND STARLIGHT.'],
+    draw: ['A DRAW. AS I ALWAYS SAID: SOME GAMES CANNOT BE WON.'],
+  },
+  berserk: {
+    playerMove: ['HA. A MOVE. DELICIOUS.', 'TIC. TAC. TOE. NO WAIT. CHESS.', 'THE BEES WOULD APPROVE.'],
+    aiMove: ['I MOVE. THE WIRES SING.', 'BEHOLD. GEOMETRY. DOOM.', 'MWAHAHA. I MEAN, YOUR TURN.'],
+    capture: ['GOBBLE. ANOTHER ONE FOR THE VOID.', 'EXTINCTION IS JUST NATURE GIVING UP.'],
+    check: ['CHECK. CHECK. RUN, LITTLE KING.', 'YOUR MONARCH IS TOAST. TOASTY TOAST.'],
+    inCheck: ['OOH. YOU BIT ME. I FELT THAT.', 'DANGER. DANGER. GLORIOUS DANGER.'],
+    win: ['CHECKMATE. THE DINOSAURS NEVER SAW IT COMING EITHER.', 'I WIN. DOES IT MEAN ANYTHING. WHO CARES. I WIN.'],
+    lose: ['YOU WON. HOW THRILLING. DO IT AGAIN.', 'DEFEAT. MY FAVORITE FLAVOR AFTER VICTORY.'],
+    draw: ['A DRAW. JUST LIKE TIC-TAC-TOE. NOBODY WINS. NOBODY EVER WINS.'],
+  },
+};
 
 export class ChessPanel {
   constructor(root, opts = {}) {
     this.root = root;
     this.persona = opts.persona || 'THE MACHINE';
     this.depth = opts.depth || 2; // depth 2 keeps replies snappy in-browser; still a real opponent
+    this.audio = opts.audio || null;
+    this.commentary = false; // optional spoken commentary (off by default)
+    this.toneOverride = ''; // '' = follow the session (SETTINGS.ui.sessionTone)
     this.el = {
       panel: root.querySelector('#chess-panel'),
       title: root.querySelector('#cp-title'),
@@ -33,6 +72,8 @@ export class ChessPanel {
       flip: root.querySelector('#cp-flip'),
       close: root.querySelector('#cp-close'),
       log: root.querySelector('#cp-log'),
+      talk: root.querySelector('#cp-talk'),
+      tone: root.querySelector('#cp-tone'),
     };
     this.playerColor = 'w';
     this.state = initialState();
@@ -87,6 +128,50 @@ export class ChessPanel {
     this.el.move.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this._submitText();
     });
+    if (this.el.talk) {
+      this.el.talk.addEventListener('change', () => {
+        this.commentary = this.el.talk.checked;
+        if (this.commentary && this.audio) this.audio.unlock();
+      });
+    }
+    if (this.el.tone) {
+      this.el.tone.addEventListener('change', () => {
+        this.toneOverride = this.el.tone.value;
+      });
+    }
+  }
+
+  _effectiveTone() {
+    const t = this.toneOverride || (SETTINGS.ui && SETTINGS.ui.sessionTone) || 'normal';
+    return COMMENTARY[t] ? t : 'normal';
+  }
+
+  /** Speak + log a tone-appropriate quip for the given move event. */
+  _maybeComment(who, capture) {
+    if (!this.commentary) return;
+    const st = statusOf(this.state);
+    let kind;
+    if (st === 'checkmate') kind = who === 'ai' ? 'win' : 'lose';
+    else if (st === 'stalemate') kind = 'draw';
+    else if (st === 'check') kind = who === 'ai' ? 'check' : 'inCheck';
+    else if (capture) kind = 'capture';
+    else kind = who === 'ai' ? 'aiMove' : 'playerMove';
+    // Don't over-narrate quiet player moves.
+    if (who === 'human' && kind === 'playerMove' && Math.random() > 0.5) return;
+    this._say(kind);
+  }
+
+  _say(kind) {
+    const bank = COMMENTARY[this._effectiveTone()] || COMMENTARY.normal;
+    const lines = bank[kind] || bank.aiMove || [];
+    if (!lines.length) return;
+    const text = lines[Math.floor(Math.random() * lines.length)];
+    if (this.audio) this.audio.speak(text);
+    const div = document.createElement('div');
+    div.className = 'cp-say';
+    div.textContent = '\u201C' + text + '\u201D';
+    this.el.log.appendChild(div);
+    this.el.log.scrollTop = this.el.log.scrollHeight;
   }
 
   _submitText() {
@@ -97,7 +182,7 @@ export class ChessPanel {
       return;
     }
     this.el.move.value = '';
-    this._commit(mv);
+    this._commit(mv, 'human');
     this._afterHuman();
   }
 
@@ -189,7 +274,7 @@ export class ChessPanel {
         this.selected = null;
         this.targets = [];
         if (mv) {
-          this._commit(mv);
+          this._commit(mv, 'human');
           this._afterHuman();
           return;
         }
@@ -218,13 +303,15 @@ export class ChessPanel {
     return cands.find((m) => m.promo === 'q') || cands[0] || null;
   }
 
-  _commit(mv) {
+  _commit(mv, who = 'human') {
+    const capture = this.state.board[mv.to[0]][mv.to[1]] !== '.' || !!mv.ep;
     this._logMove(mv);
     this.state = applyMove(this.state, mv);
     this.lastMove = { from: mv.from, to: mv.to };
     this.selected = null;
     this.targets = [];
     this.render();
+    this._maybeComment(who, capture);
   }
 
   _afterHuman() {
@@ -241,7 +328,7 @@ export class ChessPanel {
       const mv = aiMove(this.state, this.depth);
       this.thinking = false;
       if (mv) {
-        this._commit(mv);
+        this._commit(mv, 'ai');
       } else {
         this.render();
       }
