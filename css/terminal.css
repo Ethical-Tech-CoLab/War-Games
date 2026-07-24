@@ -414,6 +414,16 @@ input:focus {
   margin: 0 0 2px;
 }
 
+/* Machine responses read as an ALL-CAPS terminal, even long verbose berserk output.
+   Visual only (text-transform) — the underlying text used for speech is untouched. */
+.line.system,
+.line.alert,
+.line.ending,
+.line.critical,
+.line.echo {
+  text-transform: uppercase;
+}
+
 .line.system {
   color: var(--fg-bright);
   text-shadow: 0 0 8px rgba(51, 255, 102, 0.6);
@@ -898,38 +908,53 @@ input:focus {
 .cp-board {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  width: min(94%, 340px);
+  width: min(94%, 320px);
   aspect-ratio: 1;
-  margin: 4px auto;
+  margin: 6px auto;
   border: 1px solid var(--fg-dim);
+  background: #010601;
+  position: relative;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.8);
+}
+/* Scanlines across the board so it reads as a phosphor console render, not a modern app. */
+.cp-board::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.33) 3px 4px);
+  mix-blend-mode: multiply;
 }
 .cp-sq {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   line-height: 1;
-  border: none;
+  border: 1px solid rgba(31, 156, 64, 0.22);
   cursor: pointer;
   padding: 0;
-  color: var(--fg-bright);
+  color: var(--fg);
+  background: transparent;
   transition: background 0.1s;
+  font-variant-emoji: text;
 }
-.cp-sq.light { background: rgba(51, 255, 102, 0.13); }
-.cp-sq.dark { background: rgba(51, 255, 102, 0.04); }
-.cp-sq.white-piece { color: var(--fg-bright); text-shadow: 0 0 6px rgba(51, 255, 102, 0.6); }
-.cp-sq.black-piece { color: var(--amber); text-shadow: 0 0 6px rgba(255, 204, 51, 0.5); }
-.cp-sq.sel { outline: 2px solid var(--amber); outline-offset: -2px; }
+.cp-sq.light { background: rgba(51, 255, 102, 0.09); }
+.cp-sq.dark { background: transparent; }
+.cp-sq.white-piece { color: var(--fg-bright); text-shadow: 0 0 6px rgba(51, 255, 102, 0.7); }
+.cp-sq.black-piece { color: var(--fg-dim); text-shadow: 0 0 5px rgba(51, 255, 102, 0.35); }
+.cp-sq.sel { outline: 1px solid var(--amber); outline-offset: -1px; }
 .cp-sq.target::after {
   content: '';
-  width: 28%;
-  height: 28%;
+  width: 22%;
+  height: 22%;
   border-radius: 50%;
-  background: rgba(255, 204, 51, 0.55);
+  background: rgba(51, 255, 102, 0.5);
 }
-.cp-sq.capture { box-shadow: inset 0 0 0 3px rgba(255, 204, 51, 0.6); }
-.cp-sq.last { background: rgba(255, 204, 51, 0.18); }
-.cp-sq.check { box-shadow: inset 0 0 0 3px var(--warn); }
+.cp-sq.capture { box-shadow: inset 0 0 0 2px rgba(51, 255, 102, 0.55); }
+.cp-sq.last { background: rgba(51, 255, 102, 0.18); }
+.cp-sq.check { box-shadow: inset 0 0 0 2px var(--warn); }
 
 .cp-input-row {
   display: flex;
