@@ -110,6 +110,17 @@ export const SETTINGS = {
     apiKey: '', // set at runtime via the menu; persisted to localStorage by main.js
     temperature: 0.6,
     maxTokens: 500,
+    // Model picker options (shown as a datalist in the menu + Admin Console). Cloud ids
+    // route to GitHub Models; the on-box ids route to the B3IQ GPU via the proxy's
+    // LOCAL_MODELS mapping — SAME proxy URL, the model id selects cloud vs on-box.
+    catalog: [
+      { id: 'openai/gpt-4o-mini', label: 'GPT-4o mini — GitHub Models (cloud)' },
+      { id: 'openai/gpt-4o', label: 'GPT-4o — GitHub Models (cloud)' },
+      { id: 'gemma3:12b', label: 'Gemma 3 12B — B3IQ GPU (on-box)' },
+      { id: 'qwen3:14b', label: 'Qwen3 14B — B3IQ GPU (on-box)' },
+      { id: 'deepseek-r1:8b', label: 'DeepSeek-R1 8B — B3IQ GPU (on-box)' },
+      { id: 'hf.co/unsloth/Qwen3.6-27B-GGUF:latest', label: 'Qwen3 27B — B3IQ GPU (on-box)' },
+    ],
   },
 
   // Telemetry (for the case study). Runtime metrics are captured locally and exportable.

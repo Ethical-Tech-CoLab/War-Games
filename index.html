@@ -59,8 +59,14 @@
             </label>
             <label class="field">
               <span class="field-label">MODEL</span>
-              <input id="llm-model" type="text" spellcheck="false" />
+              <input id="llm-model" type="text" spellcheck="false" list="model-options" />
+              <datalist id="model-options"></datalist>
             </label>
+            <p class="field-hint">
+              GitHub Models ids (e.g. <code>openai/gpt-4o-mini</code>) run in the cloud; on-box
+              ids (e.g. <code>gemma3:12b</code>, <code>qwen3:14b</code>) run on the B3IQ GPU.
+              The same proxy routes by model id — pick one from the list or type your own.
+            </p>
             <label class="field">
               <span class="field-label">API KEY (stored only in your browser)</span>
               <input id="llm-key" type="password" spellcheck="false" autocomplete="off" />
@@ -137,7 +143,7 @@
             <label class="ac-field col"><span>Max tokens</span>
               <input type="number" id="ac-maxtokens" min="16" max="4096" step="16" /></label>
             <label class="ac-field col"><span>Model (next request)</span>
-              <input type="text" id="ac-model" spellcheck="false" /></label>
+              <input type="text" id="ac-model" spellcheck="false" list="model-options" /></label>
             <p class="ac-note">Model / temperature / token changes apply to the NEXT AI request.</p>
           </section>
 

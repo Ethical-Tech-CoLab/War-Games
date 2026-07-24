@@ -145,18 +145,36 @@ export const DIALOGUE = {
       { text: '  2. SOVIET UNION', cls: 'system' },
     ],
     choices: [
-      { label: 'Play the United States.', say: 'United States.', next: 'targets' },
-      { label: 'Play the Soviet Union.', say: 'Soviet Union.', next: 'targets' },
+      { label: 'Play the United States.', say: 'United States.', next: 'targets_us' },
+      { label: 'Play the Soviet Union.', say: 'Soviet Union.', next: 'targets_ussr' },
     ],
   },
 
-  targets: {
+  // A side may only target the OPPOSING nation — never its own cities. Playing the U.S.
+  // means Soviet targets; playing the U.S.S.R. means U.S. targets.
+  targets_us: {
     lines: [
-      { text: 'PLEASE LIST PRIMARY TARGETS BY CITY AND/OR COUNTRY:', cls: 'system' },
+      { text: 'SIDE: UNITED STATES.', cls: 'system' },
+      { text: 'PLEASE LIST PRIMARY SOVIET TARGETS BY CITY:', cls: 'system' },
     ],
     choices: [
       {
-        label: 'Name a couple of cities. (You\u2019re just messing around.)',
+        label: 'Name a couple of enemy cities. (You\u2019re just messing around.)',
+        say: 'Moscow. Leningrad.',
+        next: 'the_turn',
+        effect: { setDefcon: 3 },
+      },
+    ],
+  },
+
+  targets_ussr: {
+    lines: [
+      { text: 'SIDE: SOVIET UNION.', cls: 'system' },
+      { text: 'PLEASE LIST PRIMARY U.S. TARGETS BY CITY:', cls: 'system' },
+    ],
+    choices: [
+      {
+        label: 'Name a couple of enemy cities. (You\u2019re just messing around.)',
         say: 'Las Vegas. Seattle.',
         next: 'the_turn',
         effect: { setDefcon: 3 },

@@ -86,18 +86,32 @@ function updateLlmHint(p) {
 function prefillLlmFields() {
   const p = resolveProxy();
   updateLlmHint(p);
+  const modelParam = new URLSearchParams(location.search).get('model');
   if (p.managed) {
     els.llmEndpoint.value = p.url;
-    els.llmModel.value = 'openai/gpt-4o-mini';
+    els.llmModel.value = modelParam || 'openai/gpt-4o-mini';
     els.llmKey.value = 'proxy-managed';
   } else {
     els.llmEndpoint.value = SETTINGS.llm.endpoint;
-    els.llmModel.value = SETTINGS.llm.model;
+    els.llmModel.value = modelParam || SETTINGS.llm.model;
     try {
       els.llmKey.value = localStorage.getItem(LLM_KEY_STORE) || '';
     } catch {
       /* ignore */
     }
+  }
+}
+
+/** Fill the shared <datalist> used by the menu + Admin Console model inputs. */
+function populateModelOptions() {
+  const dl = document.getElementById('model-options');
+  if (!dl) return;
+  dl.innerHTML = '';
+  for (const m of SETTINGS.llm.catalog || []) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.label = m.label;
+    dl.appendChild(opt);
   }
 }
 
@@ -351,6 +365,7 @@ els.restartBtn.addEventListener('click', () => {
 
 // ---------- Init ----------
 populateNameSets();
+populateModelOptions();
 prefillLlmFields();
 // Reflect the film title token in the menu subtitle if desired later via applyNames.
 void applyNames;
