@@ -24,6 +24,7 @@
         <div class="status-right">
           <span class="mode-badge" id="mode-badge"></span>
           <button class="ghost-btn" id="sound-btn" type="button">SOUND: ON</button>
+          <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
           <button class="ghost-btn" id="telemetry-btn" type="button">TELEMETRY</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
         </div>
@@ -94,6 +95,7 @@
         <div class="output" id="output" aria-live="polite"></div>
         <div class="choices" id="choices"></div>
         <div class="input-row" id="input-row" hidden>
+          <span class="input-mode" id="input-mode" hidden></span>
           <span class="prompt-caret">&gt;</span>
           <input
             id="text-input"
@@ -105,6 +107,55 @@
           />
         </div>
       </main>
+
+      <!-- AI Admin Console: pinnable panel on the right. Shows the exact prompt/response of
+           each AI turn and exposes builder configuration. Hidden until opened. -->
+      <aside class="admin-console" id="admin-console" aria-label="AI Admin Console" hidden>
+        <div class="ac-head">
+          <span class="ac-title">AI ADMIN CONSOLE</span>
+          <div class="ac-head-actions">
+            <button class="ghost-btn" id="ac-pin" type="button" title="Pin/unpin to the side">PIN</button>
+            <button class="ghost-btn" id="ac-close" type="button" title="Close">CLOSE</button>
+          </div>
+        </div>
+        <div class="ac-body">
+          <section class="ac-section">
+            <div class="ac-section-head">
+              <span>LAST AI EXCHANGE</span>
+              <span class="ac-turnmeta" id="ac-turnmeta"></span>
+            </div>
+            <div class="ac-sublabel">PROMPT — exact messages sent</div>
+            <pre class="ac-pre" id="ac-prompt">— no AI turns yet —</pre>
+            <div class="ac-sublabel">RESPONSE — raw model output</div>
+            <pre class="ac-pre" id="ac-response">—</pre>
+          </section>
+
+          <section class="ac-section">
+            <div class="ac-section-head">
+              <span>TURN LOG</span>
+              <span class="ac-turncount" id="ac-turncount">0</span>
+            </div>
+            <div class="ac-turnlog" id="ac-turnlog"></div>
+          </section>
+
+          <section class="ac-section">
+            <div class="ac-section-head"><span>CONFIGURATION</span></div>
+            <label class="ac-field"><span>AI response marker</span>
+              <input type="checkbox" id="ac-aimarker" /></label>
+            <label class="ac-field"><span>Sound</span>
+              <input type="checkbox" id="ac-sound" /></label>
+            <label class="ac-field col"><span>Typewriter speed <em id="ac-speed-val"></em></span>
+              <input type="range" id="ac-speed" min="0" max="80" step="2" /></label>
+            <label class="ac-field col"><span>Temperature <em id="ac-temp-val"></em></span>
+              <input type="range" id="ac-temp" min="0" max="20" step="1" /></label>
+            <label class="ac-field col"><span>Max tokens</span>
+              <input type="number" id="ac-maxtokens" min="16" max="4096" step="16" /></label>
+            <label class="ac-field col"><span>Model (next request)</span>
+              <input type="text" id="ac-model" spellcheck="false" /></label>
+            <p class="ac-note">Model / temperature / token changes apply to the NEXT AI request.</p>
+          </section>
+        </div>
+      </aside>
       </div>
       <!-- Monitor chin: fake brand plate + power LED for that 1983 feel -->
       <div class="monitor-chin" aria-hidden="true">

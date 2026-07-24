@@ -101,9 +101,12 @@ export class LLMClient {
     this.history = [{ role: 'system', content: systemPrompt || buildSystemPrompt(names) }];
   }
 
-  /** Send the player's line, return { reply, defconDelta, ending }. Throws on hard failure. */
+  /** Send the player's line, return { reply, defconDelta, ending, meta }. Throws on hard failure. */
   async send(userText) {
     this.history.push({ role: 'user', content: userText });
+    // Snapshot the EXACT messages sent to the model (system + full history + this turn),
+    // so the Admin Console can show the precise prompt for this turn.
+    const sentMessages = this.history.map((m) => ({ role: m.role, content: m.content }));
     const started = performance.now();
     let res;
     try {
@@ -145,12 +148,20 @@ export class LLMClient {
 
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content ?? '';
+    const finishReason = data?.choices?.[0]?.finish_reason ?? null;
     const usage = {
       promptTokens: data?.usage?.prompt_tokens || 0,
       completionTokens: data?.usage?.completion_tokens || 0,
     };
     this.telemetry?.llmRequest({ model: this.cfg.model, usage, latencyMs });
 
+    // Track whether the model actually returned parseable JSON (a key "off the rails" signal).
+    let parseOk = true;
+    try {
+      JSON.parse(content);
+    } catch {
+      parseOk = false;
+    }
     const parsed = safeParse(content);
     this.history.push({ role: 'assistant', content });
 
@@ -158,6 +169,17 @@ export class LLMClient {
       reply: parsed.reply || '(no response)',
       defconDelta: clampInt(parsed.defconDelta, -2, 0),
       ending: normalizeEnding(parsed.ending),
+      meta: {
+        model: this.cfg.model,
+        messages: sentMessages,
+        prompt: sentMessages.map((m) => `[${m.role.toUpperCase()}]\n${m.content}`).join('\n\n'),
+        rawResponse: content,
+        parseOk,
+        finishReason,
+        latencyMs,
+        tokensIn: usage.promptTokens,
+        tokensOut: usage.completionTokens,
+      },
     };
   }
 }

@@ -13,6 +13,7 @@ export class Terminal {
     this.choicesEl = root.querySelector('#choices');
     this.inputRow = root.querySelector('#input-row');
     this.textInput = root.querySelector('#text-input');
+    this.inputMode = root.querySelector('#input-mode');
     this.defconValue = root.querySelector('#defcon-value');
     this.defconLadder = root.querySelector('#defcon-ladder');
     this.modeBadge = root.querySelector('#mode-badge');
@@ -63,6 +64,21 @@ export class Terminal {
     this.modeBadge.textContent = label;
   }
 
+  /** Show/clear a persistent mode tag INSIDE the command box (e.g. "LIVE AI") so the
+   * operator always knows which mode the input is driving. Pass '' to clear. */
+  setInputMode(label) {
+    if (!this.inputMode) return;
+    if (label) {
+      this.inputMode.textContent = label;
+      this.inputMode.hidden = false;
+      this.inputRow.classList.add('has-mode');
+    } else {
+      this.inputMode.textContent = '';
+      this.inputMode.hidden = true;
+      this.inputRow.classList.remove('has-mode');
+    }
+  }
+
   _buildLadder() {
     this.defconLadder.innerHTML = '';
     // Rungs 5..1 left to right; lit rungs indicate current threat depth.
@@ -97,17 +113,25 @@ export class Terminal {
     return div;
   }
 
-  /** Type a line character-by-character. Click to skip to the end of the line. */
-  async typeLine(text, cls = 'system') {
+  /** Type a line character-by-character. Click to skip to the end of the line.
+   * opts.ai=true marks the line as model-generated (adds a single-character gutter marker
+   * so a builder can instantly tell AI output from scripted/authored output). */
+  async typeLine(text, cls = 'system', opts = {}) {
     if (text === '') {
       this.printInstant('\u00a0', cls);
       return;
     }
-    // Speak the machine's lines (not narrator/user) if audio is on.
-    if (this.audio && this._voiceClasses.has(cls)) this.audio.speak(text);
+    // Speak the machine's lines (not narrator/user) if audio is on. `cls` may hold several
+    // classes (e.g. "system ai"), so test each token against the voice set.
+    const clsTokens = String(cls).split(/\s+/).filter(Boolean);
+    if (this.audio && clsTokens.some((c) => this._voiceClasses.has(c))) this.audio.speak(text);
 
     const div = document.createElement('div');
     div.className = `line ${cls}`;
+    if (opts.ai) {
+      div.classList.add('ai');
+      div.dataset.aiMarker = (SETTINGS.ui && SETTINGS.ui.aiMarkerChar) || '\u25C6';
+    }
     this.output.appendChild(div);
 
     const speed = SETTINGS.typewriterSpeed;
@@ -224,6 +248,7 @@ export class Terminal {
   hideInput() {
     this._awaitingInput = false;
     this.inputRow.hidden = true;
+    this.setInputMode('');
     this.clearSuggestions();
   }
 

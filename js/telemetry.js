@@ -7,6 +7,7 @@
 export class Telemetry {
   constructor(opts = {}) {
     this.persistKey = opts.persistKey || 'wargames.telemetry.lastSession';
+    this.onTurn = null; // optional subscriber (Admin Console) invoked with each AI turn record
     this.reset();
   }
 
@@ -34,6 +35,7 @@ export class Telemetry {
         avgLatencyMs: 0,
         requests: [], // { at, model, tokensIn, tokensOut, latencyMs }
       },
+      turns: [], // detailed per-turn AI records (llm mode) — see turn()
       ending: null, // 'annihilation' | 'lockout' | 'understanding'
       minDefconReached: 5,
       events: [], // ordered log of {t, type, detail}
@@ -98,6 +100,53 @@ export class Telemetry {
     this.event('llm', { model, tokensIn, tokensOut, latencyMs });
   }
 
+  /**
+   * Record a detailed AI turn (llm mode). Captures the operator's input, the exact prompt
+   * sent, the raw model response, the parsed control signals, DEFCON movement, timing and
+   * token usage — everything a builder needs to see when a model "goes off the rails".
+   * Also notifies any subscriber (the Admin Console) via onTurn.
+   */
+  turn(record = {}) {
+    const entry = {
+      n: this.session.turns.length + 1,
+      at: new Date().toISOString(),
+      t: Math.round(performance.now() - this.session.startedMs),
+      phase: record.phase || 'live', // 'live' | 'berserk'
+      userText: record.userText ?? '',
+      prompt: record.prompt ?? '', // exact serialized messages sent to the model
+      messages: record.messages || null, // structured messages (may be trimmed by caller)
+      rawResponse: record.rawResponse ?? '', // exact raw model output (pre-parse)
+      reply: record.reply ?? '',
+      parseOk: record.parseOk !== false,
+      retried: !!record.retried,
+      defconBefore: record.defconBefore ?? null,
+      defconAfter: record.defconAfter ?? null,
+      defconDelta: typeof record.defconDelta === 'number' ? record.defconDelta : null,
+      endingSignal: record.endingSignal ?? null,
+      model: record.model || this.session.model || null,
+      latencyMs: record.latencyMs ?? null,
+      tokensIn: record.tokensIn ?? null,
+      tokensOut: record.tokensOut ?? null,
+      finishReason: record.finishReason ?? null,
+      error: record.error ?? null,
+    };
+    this.session.turns.push(entry);
+    this.event('turn', {
+      n: entry.n,
+      defconDelta: entry.defconDelta,
+      parseOk: entry.parseOk,
+      endingSignal: entry.endingSignal,
+    });
+    if (typeof this.onTurn === 'function') {
+      try {
+        this.onTurn(entry);
+      } catch {
+        /* subscriber errors must never break gameplay */
+      }
+    }
+    return entry;
+  }
+
   endSession(ending) {
     this.session.ending = ending || this.session.ending;
     this.session.endedAt = new Date().toISOString();
@@ -153,6 +202,17 @@ export class Telemetry {
         `tokens out : ${s.llm.tokensOut}`,
         `tokens total: ${s.llm.tokensTotal}`,
         `avg latency: ${s.llm.avgLatencyMs} ms`
+      );
+    }
+    if (s.turns && s.turns.length) {
+      const parseFails = s.turns.filter((tn) => !tn.parseOk).length;
+      const retried = s.turns.filter((tn) => tn.retried).length;
+      lines.push(
+        '',
+        '--- AI turns ---',
+        `turns logged : ${s.turns.length}`,
+        `parse fails  : ${parseFails}`,
+        `retried      : ${retried}`
       );
     }
     return lines.join('\n');

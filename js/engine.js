@@ -124,10 +124,9 @@ export class GameEngine {
     await this.term.typeLine(`GREETINGS, ${this.names.CREATOR}.`, 'system');
     await this.term.typeLine('SHALL WE PLAY A GAME?', 'system');
     await this.term.typeLine('', 'system');
-    await this.term.typeLine(
-      '[ Live AI mode: type your own commands, or click a suggested command below. ]',
-      'narrator'
-    );
+    // Live-AI mode indicator now lives IN the command box (see setInputMode + placeholder),
+    // instead of a printed narrator line.
+    this.term.setInputMode('LIVE AI');
 
     const client = new LLMClient(SETTINGS.llm, this.names, this.telemetry);
     let noProgressTurns = 0;
@@ -136,7 +135,7 @@ export class GameEngine {
     for (let turn = 0; turn < 30; turn++) {
       // Guardrails: always offer scripted-derived suggestions so the player is never lost.
       this.term.setSuggestions(SUGGESTIONS);
-      const userText = await this.term.prompt(); // prompt echoes the line once
+      const userText = await this.term.prompt('TYPE A COMMAND, OR CLICK A SUGGESTION BELOW'); // prompt echoes the line once
       this.telemetry.freeTextInput(userText);
 
       if (isLost(userText)) {
@@ -183,9 +182,31 @@ export class GameEngine {
       const replyLines = String(result.reply).split('\n').filter((l) => l.trim()).slice(0, 4);
       for (const line of replyLines) {
         // eslint-disable-next-line no-await-in-loop
-        await this.term.typeLine(line, 'system');
+        await this.term.typeLine(line, 'system', { ai: true });
       }
       this._setDefcon(this.defcon + (result.defconDelta || 0));
+
+      // Detailed per-turn telemetry (prompt/response/signals) for the Admin Console.
+      const meta = result.meta || {};
+      this.telemetry.turn({
+        phase: 'live',
+        userText,
+        prompt: meta.prompt,
+        messages: meta.messages,
+        rawResponse: meta.rawResponse,
+        reply: result.reply,
+        parseOk: meta.parseOk,
+        retried: !!result.retried,
+        defconBefore: before,
+        defconAfter: this.defcon,
+        defconDelta: result.defconDelta || 0,
+        endingSignal: result.ending,
+        model: meta.model,
+        latencyMs: meta.latencyMs,
+        tokensIn: meta.tokensIn,
+        tokensOut: meta.tokensOut,
+        finishReason: meta.finishReason,
+      });
 
       if (result.ending) {
         await this._playLLMEnding(result.ending);
@@ -218,7 +239,9 @@ export class GameEngine {
       /unparseable|no response/i.test(String(result.reply));
     if (bad) {
       await this.term.typeLine('SIGNAL GARBLED — RETRANSMITTING\u2026', 'alert');
-      return client.send('Your last message was unreadable. Reply again with ONLY the JSON object.');
+      const retry = await client.send('Your last message was unreadable. Reply again with ONLY the JSON object.');
+      if (retry) retry.retried = true;
+      return retry;
     }
     return result;
   }
@@ -281,6 +304,7 @@ export class GameEngine {
     }
 
     this.term.setMode(`BERSERK \u00b7 ${SETTINGS.llm.model}`);
+    this.term.setInputMode('BERSERK');
     const client = new LLMClient(
       SETTINGS.llm,
       this.names,
@@ -300,6 +324,7 @@ export class GameEngine {
       // Occasionally glitch the screen right as the machine "thinks".
       if (Math.random() < 0.5) this.term.glitchPulse();
 
+      const before = this.defcon;
       let result;
       try {
         result = await this._sendWithRetry(client, userText);
@@ -322,12 +347,34 @@ export class GameEngine {
       const lines = String(result.reply).split('\n').filter((l) => l.trim()).slice(0, 4);
       for (const line of lines) {
         // eslint-disable-next-line no-await-in-loop
-        await this.term.typeLine(line, 'system');
+        await this.term.typeLine(line, 'system', { ai: true });
       }
 
       // Chaotic DEFCON jitter — up OR down, unlike the disciplined main mode.
       const jitter = [-2, -1, -1, 0, 0, 1, 1, 2][Math.floor(Math.random() * 8)];
       this._setDefcon(this.defcon + jitter);
+
+      // Detailed per-turn telemetry for the Admin Console (berserk phase).
+      const meta = result.meta || {};
+      this.telemetry.turn({
+        phase: 'berserk',
+        userText,
+        prompt: meta.prompt,
+        messages: meta.messages,
+        rawResponse: meta.rawResponse,
+        reply: result.reply,
+        parseOk: meta.parseOk,
+        retried: !!result.retried,
+        defconBefore: before,
+        defconAfter: this.defcon,
+        defconDelta: jitter,
+        endingSignal: result.ending,
+        model: meta.model,
+        latencyMs: meta.latencyMs,
+        tokensIn: meta.tokensIn,
+        tokensOut: meta.tokensOut,
+        finishReason: meta.finishReason,
+      });
 
       // Sprinkle in an eerie "Rhodes echo" or a berserk interjection.
       const roll = Math.random();
@@ -354,6 +401,7 @@ export class GameEngine {
       '(the deep signal is unreachable \u2014 but the professor lingers, muttering)',
       'narrator'
     );
+    this.term.setInputMode('BERSERK');
     const pool = [
       ...RHODES_ECHOES,
       ...BERSERK_INTERJECTIONS,

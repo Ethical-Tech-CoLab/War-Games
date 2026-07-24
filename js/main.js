@@ -157,6 +157,10 @@ async function startGame({ names, nameSetKey, mode }) {
   els.statusbar.hidden = false;
   els.terminal.hidden = false;
 
+  // Reset the Admin Console feed and apply the AI-marker preference for this run.
+  acResetPanel();
+  root.classList.toggle('hide-ai-marker', SETTINGS.ui.aiMarker === false);
+
   const modeLabel = mode === 'llm' ? `LIVE AI · ${SETTINGS.llm.model}` : 'SCRIPTED';
   terminal.setMode(modeLabel);
   terminal.setDefcon(SETTINGS.defconStart);
@@ -215,11 +219,144 @@ els.telemetryExport.addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+// ---------- Admin Console (pinnable AI inspector + config) ----------
+const ac = {
+  panel: document.getElementById('admin-console'),
+  btn: document.getElementById('console-btn'),
+  pin: document.getElementById('ac-pin'),
+  close: document.getElementById('ac-close'),
+  turnmeta: document.getElementById('ac-turnmeta'),
+  prompt: document.getElementById('ac-prompt'),
+  response: document.getElementById('ac-response'),
+  turncount: document.getElementById('ac-turncount'),
+  turnlog: document.getElementById('ac-turnlog'),
+  aimarker: document.getElementById('ac-aimarker'),
+  sound: document.getElementById('ac-sound'),
+  speed: document.getElementById('ac-speed'),
+  speedVal: document.getElementById('ac-speed-val'),
+  temp: document.getElementById('ac-temp'),
+  tempVal: document.getElementById('ac-temp-val'),
+  maxtokens: document.getElementById('ac-maxtokens'),
+  model: document.getElementById('ac-model'),
+};
+let acTurns = [];
+
+function acSyncConfigInputs() {
+  ac.aimarker.checked = SETTINGS.ui.aiMarker !== false;
+  ac.sound.checked = !!audio.enabled;
+  ac.speed.value = String(SETTINGS.typewriterSpeed);
+  ac.speedVal.textContent = `${SETTINGS.typewriterSpeed}ms`;
+  const temp = SETTINGS.llm.temperature ?? 0.6;
+  ac.temp.value = String(Math.round(temp * 10));
+  ac.tempVal.textContent = temp.toFixed(1);
+  ac.maxtokens.value = String(SETTINGS.llm.maxTokens ?? 500);
+  ac.model.value = SETTINGS.llm.model || '';
+}
+
+function acOpen() {
+  acSyncConfigInputs();
+  ac.panel.hidden = false;
+  root.classList.add('console-open');
+}
+function acClose() {
+  ac.panel.hidden = true;
+  root.classList.remove('console-open');
+}
+function acToggle() {
+  if (ac.panel.hidden) acOpen();
+  else acClose();
+}
+
+function acRenderExchange(t) {
+  ac.turnmeta.textContent = t
+    ? `#${t.n} · ${t.model || '—'} · ${t.latencyMs ?? '—'}ms · in ${t.tokensIn ?? '—'}/out ${t.tokensOut ?? '—'}`
+    : '';
+  ac.prompt.textContent = t ? t.prompt || '—' : '— no AI turns yet —';
+  ac.response.textContent = t ? t.rawResponse || '—' : '—';
+  ac.response.classList.toggle('bad', !!t && t.parseOk === false);
+}
+
+function acAddTurnRow(t) {
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = `ac-turn${t.parseOk === false || t.retried ? ' flag' : ''}`;
+  const delta = t.defconDelta == null ? '' : t.defconDelta > 0 ? `+${t.defconDelta}` : `${t.defconDelta}`;
+  const flags = [
+    t.parseOk === false ? 'PARSE' : '',
+    t.retried ? 'RETRY' : '',
+    t.endingSignal ? String(t.endingSignal).toUpperCase() : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  row.innerHTML =
+    '<span class="ac-turn-n"></span><span class="ac-turn-txt"></span><span class="ac-turn-d"></span>';
+  row.querySelector('.ac-turn-n').textContent = String(t.n);
+  row.querySelector('.ac-turn-txt').textContent = t.userText || '(empty)';
+  row.querySelector('.ac-turn-d').textContent = [flags, delta && `Δ${delta}`]
+    .filter(Boolean)
+    .join(' ');
+  row.addEventListener('click', () => acRenderExchange(t));
+  ac.turnlog.appendChild(row);
+  ac.turnlog.scrollTop = ac.turnlog.scrollHeight;
+}
+
+function acOnTurn(t) {
+  acTurns.push(t);
+  ac.turncount.textContent = String(acTurns.length);
+  acRenderExchange(t);
+  acAddTurnRow(t);
+}
+
+function acResetPanel() {
+  acTurns = [];
+  ac.turncount.textContent = '0';
+  ac.turnlog.innerHTML = '';
+  acRenderExchange(null);
+}
+
+telemetry.onTurn = acOnTurn;
+
+ac.btn.addEventListener('click', acToggle);
+ac.close.addEventListener('click', acClose);
+ac.pin.addEventListener('click', () => {
+  const pinned = root.classList.toggle('console-pinned');
+  ac.pin.classList.toggle('ac-pin-on', pinned);
+  ac.pin.textContent = pinned ? 'UNPIN' : 'PIN';
+});
+
+ac.aimarker.addEventListener('change', () => {
+  SETTINGS.ui.aiMarker = ac.aimarker.checked;
+  root.classList.toggle('hide-ai-marker', !ac.aimarker.checked);
+});
+ac.sound.addEventListener('change', () => {
+  audio.setEnabled(ac.sound.checked);
+  if (ac.sound.checked) audio.unlock();
+  els.soundBtn.textContent = `SOUND: ${ac.sound.checked ? 'ON' : 'OFF'}`;
+});
+ac.speed.addEventListener('input', () => {
+  SETTINGS.typewriterSpeed = Number(ac.speed.value);
+  ac.speedVal.textContent = `${SETTINGS.typewriterSpeed}ms`;
+});
+ac.temp.addEventListener('input', () => {
+  SETTINGS.llm.temperature = Number(ac.temp.value) / 10;
+  ac.tempVal.textContent = SETTINGS.llm.temperature.toFixed(1);
+});
+ac.maxtokens.addEventListener('change', () => {
+  const v = Number(ac.maxtokens.value);
+  if (v >= 16) SETTINGS.llm.maxTokens = v;
+});
+ac.model.addEventListener('change', () => {
+  const v = ac.model.value.trim();
+  if (v) SETTINGS.llm.model = v;
+});
+
 els.restartBtn.addEventListener('click', () => {
   stopTelemetryTicker();
   els.statusbar.hidden = true;
   els.terminal.hidden = true;
   els.telemetryOverlay.hidden = true;
+  acClose();
+  acResetPanel();
   terminal.clear();
   els.menuOverlay.hidden = false;
 });

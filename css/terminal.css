@@ -6,7 +6,9 @@
   --fg-dim: #1f9c40;
   --fg-bright: #b6ffcc;
   --amber: #ffcc33;
+  --warn: #ff9d3c; /* warm amber-orange for cautions — softer than pure red */
   --red: #ff4444;
+  --echo: #7fe0c0; /* cool phosphor green for "echo" lines (was blue) */
   --font: "Cascadia Code", "Consolas", "SFMono-Regular", ui-monospace, monospace;
 }
 
@@ -428,8 +430,8 @@ input:focus {
 }
 
 .line.alert {
-  color: var(--red);
-  text-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  color: var(--warn);
+  text-shadow: 0 0 8px rgba(255, 157, 60, 0.5);
 }
 
 .line.ending {
@@ -438,12 +440,29 @@ input:focus {
   letter-spacing: 1px;
 }
 
-/* Eerie "Rhodes echo" lines — a different, cold hue that reads as a signal bleeding through. */
+/* Eerie "Rhodes echo" lines — a cool phosphor-green hue (reduced blue) that still reads as
+   a signal bleeding through, without leaning on blue. */
 .line.echo {
-  color: #7fd7ff;
-  text-shadow: 0 0 8px rgba(127, 215, 255, 0.6);
+  color: var(--echo);
+  text-shadow: 0 0 8px rgba(127, 224, 192, 0.5);
   font-style: italic;
   letter-spacing: 1px;
+}
+
+/* AI-generated response marker: a single character in the gutter so a builder can instantly
+   tell model output from authored/scripted output. The glyph comes from data-ai-marker
+   (configurable via SETTINGS.ui.aiMarkerChar). Hidden globally when .hide-ai-marker is set. */
+.line.ai::before {
+  content: attr(data-ai-marker);
+  color: var(--amber);
+  opacity: 0.85;
+  margin-right: 0.6ch;
+  text-shadow: 0 0 6px rgba(255, 204, 51, 0.4);
+}
+
+.crt.hide-ai-marker .line.ai::before {
+  content: none;
+  margin-right: 0;
 }
 
 .cursor {
@@ -469,6 +488,19 @@ input:focus {
   padding-top: 10px;
   border-top: 1px solid var(--fg-dim);
   margin-top: 8px;
+}
+
+/* Mode tag INSIDE the command box (e.g. "LIVE AI"), shown only in AI modes. */
+.input-mode {
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  font-weight: bold;
+  color: #041004;
+  background: var(--amber);
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+  box-shadow: 0 0 8px rgba(255, 204, 51, 0.4);
 }
 
 .prompt-caret {
@@ -579,6 +611,219 @@ input:focus {
   justify-content: flex-end;
 }
 
+/* ---------- AI Admin Console (right-docked, pinnable) ---------- */
+.admin-console {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 370px;
+  max-width: 92vw;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  background: rgba(1, 8, 1, 0.975);
+  border-left: 1px solid var(--fg-dim);
+  box-shadow: -10px 0 34px rgba(0, 0, 0, 0.55);
+  font-size: 0.78rem;
+}
+
+/* When pinned, reserve space so the panel doesn't cover the conversation/input. */
+.crt.console-pinned .statusbar {
+  padding-right: 386px;
+}
+.crt.console-pinned .terminal {
+  padding-right: 394px;
+}
+
+.ac-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fg-dim);
+  letter-spacing: 2px;
+}
+
+.ac-title {
+  color: var(--fg-bright);
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(51, 255, 102, 0.5);
+}
+
+.ac-head-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ac-pin-on {
+  background: var(--fg-dim);
+  color: #000;
+}
+
+.ac-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fg-dim) transparent;
+}
+
+.ac-body::-webkit-scrollbar {
+  width: 8px;
+}
+.ac-body::-webkit-scrollbar-thumb {
+  background: var(--fg-dim);
+}
+
+.ac-section {
+  margin-bottom: 16px;
+  border: 1px solid rgba(31, 156, 64, 0.4);
+  padding: 8px 10px;
+}
+
+.ac-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: 2px;
+  color: var(--fg-dim);
+  font-size: 0.68rem;
+  margin-bottom: 6px;
+}
+
+.ac-turnmeta,
+.ac-turncount {
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+
+.ac-sublabel {
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+  color: var(--fg-dim);
+  margin: 8px 0 2px;
+}
+
+.ac-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #010601;
+  border: 1px solid rgba(31, 156, 64, 0.35);
+  color: var(--fg);
+  padding: 8px;
+  margin: 0;
+  max-height: 26vh;
+  overflow-y: auto;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.ac-pre.bad {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+/* Turn log */
+.ac-turnlog {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 24vh;
+  overflow-y: auto;
+}
+
+.ac-turn {
+  display: grid;
+  grid-template-columns: 2.2ch 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 6px;
+  border: 1px solid rgba(31, 156, 64, 0.28);
+  cursor: pointer;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+  font-family: var(--font);
+  font-size: 0.72rem;
+}
+
+.ac-turn:hover {
+  background: rgba(31, 156, 64, 0.18);
+}
+
+.ac-turn .ac-turn-n {
+  color: var(--fg-dim);
+}
+
+.ac-turn .ac-turn-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-turn .ac-turn-d {
+  color: var(--amber);
+  letter-spacing: 0.5px;
+}
+
+.ac-turn.flag {
+  border-color: var(--warn);
+}
+.ac-turn.flag .ac-turn-d {
+  color: var(--warn);
+}
+
+/* Config fields */
+.ac-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+  color: var(--fg);
+}
+
+.ac-field.col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.ac-field span {
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  color: var(--fg-dim);
+}
+
+.ac-field em {
+  color: var(--amber);
+  font-style: normal;
+}
+
+.ac-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--fg);
+}
+
+.ac-field input[type="checkbox"] {
+  accent-color: var(--fg);
+  width: 16px;
+  height: 16px;
+}
+
+.ac-field input[type="number"],
+.ac-field input[type="text"] {
+  width: 100%;
+}
+
+.ac-note {
+  font-size: 0.64rem;
+  color: var(--fg-dim);
+  line-height: 1.4;
+  margin: 6px 0 0;
+}
+
 @media (max-width: 600px) {
   html,
   body {
@@ -587,5 +832,13 @@ input:focus {
   .menu-title {
     font-size: 1.1rem;
     letter-spacing: 2px;
+  }
+  .admin-console {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .crt.console-pinned .statusbar,
+  .crt.console-pinned .terminal {
+    padding-right: 16px;
   }
 }

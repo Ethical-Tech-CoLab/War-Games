@@ -76,6 +76,12 @@ export const SETTINGS = {
   typewriterSpeed: 28, // ms per character (higher = slower; ~1983 serial cadence)
   defconStart: 5, // 5 = peace, 1 = imminent war
 
+  // Builder-facing UI options (surfaced in the Admin Console).
+  ui: {
+    aiMarker: true, // prefix every AI-generated response line with a marker glyph
+    aiMarkerChar: '\u25C6', // ◆ — single-character "this came from the model" indicator
+  },
+
   // Which experience to run: 'scripted' (deterministic) or 'llm' (dynamic)
   mode: 'scripted',
 
