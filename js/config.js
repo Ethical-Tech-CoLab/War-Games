@@ -91,12 +91,15 @@ export const SETTINGS = {
     // You can also override at runtime with ?proxy=<url> in the page URL.
     //
     // Live deployment: pages-ai-proxy on the B3IQ GPU box, exposed via a Cloudflare
-    // quick tunnel (systemd service `pages-ai-tunnel`, upstream GitHub Models).
+    // quick tunnel (systemd service `pages-ai-tunnel`). The proxy routes cloud models
+    // (e.g. gpt-4o-mini) to GitHub Models and on-box GPU models (e.g. gemma3:12b, qwen3:14b)
+    // to local Ollama. Apps can discover the catalog via GET <proxy>/config and /v1/models.
     // NOTE: trycloudflare quick-tunnel URLs are EPHEMERAL — they change if the tunnel
-    // process restarts. If Live-AI stops working, update this URL (see the value logged
-    // by `journalctl -u pages-ai-tunnel` on the box) or switch to a named tunnel for a
-    // stable hostname. Live-AI fails gracefully back to scripted mode when unreachable.
-    proxyUrl: 'https://jury-kijiji-isolation-chocolate.trycloudflare.com/v1/chat/completions',
+    // process itself restarts (a reboot). The tunnel is decoupled from the proxy so proxy
+    // restarts no longer rotate it. If Live-AI stops working, update this URL (see
+    // `journalctl -u pages-ai-tunnel` on the box) or switch to a named tunnel for a stable
+    // hostname. Live-AI fails gracefully back to scripted mode when unreachable.
+    proxyUrl: 'https://rss-junior-ireland-scenes.trycloudflare.com/v1/chat/completions',
     model: 'gpt-4o-mini',
     apiKey: '', // set at runtime via the menu; persisted to localStorage by main.js
     temperature: 0.6,
