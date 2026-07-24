@@ -152,7 +152,7 @@ export class AudioFx {
   speak(text) {
     if (!this.enabled) return;
     if (typeof speechSynthesis === 'undefined') return;
-    let s = String(text)
+    let s = spellAcronyms(String(text))
       // Turn slashes/pipes and dashes into pauses instead of spoken words like "slash".
       .replace(/[\u2014\u2013]/g, ', ') // em/en dashes -> pause
       .replace(/[/\\|]+/g, ', ') // slashes/pipes -> pause
@@ -196,4 +196,60 @@ function pickMachineVoice(voices) {
     if (hit) return hit;
   }
   return voices.find((v) => /en/i.test(v.lang)) || voices[0] || null;
+}
+
+// ---------- Acronym / initialism pronunciation ----------
+// The terminal speaks in ALL CAPS, so the speech engine can't tell an acronym (US = "U. S.")
+// from a word (US = "us"). We spell out uppercase initialisms LETTER BY LETTER using each
+// letter's phonetic sound, while preserving genuine short words (TO, IS, WE, ...).
+//
+// How it decides, for an UPPERCASE token of 2+ letters:
+//   1. If it's in SPELL_ALWAYS  -> always spell it out (covers 3+ letter initialisms too).
+//   2. If it's exactly 2 letters and NOT in KEEP_TWO_LETTER -> spell it out (US, AI, PC, ...).
+//   3. Otherwise leave it as a word (NORAD, DEFCON, JOSHUA, and real 2-letter words).
+// To fix a mispronunciation, add the token to SPELL_ALWAYS, or add a real word you want
+// preserved to KEEP_TWO_LETTER.
+
+const PHONETIC = {
+  A: 'ay', B: 'bee', C: 'see', D: 'dee', E: 'ee', F: 'eff', G: 'jee', H: 'aitch',
+  I: 'eye', J: 'jay', K: 'kay', L: 'el', M: 'em', N: 'en', O: 'oh', P: 'pee',
+  Q: 'cue', R: 'ar', S: 'ess', T: 'tee', U: 'you', V: 'vee', W: 'double-you',
+  X: 'ex', Y: 'why', Z: 'zee',
+};
+
+// Initialisms that must be spelled out even though a naive reader might say them as a word
+// (or that are 3+ letters). Extend this as new cases surface.
+const SPELL_ALWAYS = new Set([
+  'US', 'USA', 'USSR', 'USB', 'UK', 'UN', 'EU', 'UAE',
+  'AI', 'ID', 'PC', 'TV', 'OS', 'IP', 'PR', 'HR', 'CEO', 'CTO',
+  'CPU', 'GPU', 'RAM', 'GPS', 'DNA', 'ICBM', 'SLBM', 'FBI', 'CIA', 'NSA', 'KGB',
+  'HTTP', 'HTTPS', 'URL', 'API', 'LLM', 'UI', 'UX', 'QA',
+]);
+
+// Real 2-letter words to PRESERVE (never spell out), because they read as words.
+const KEEP_TWO_LETTER = new Set([
+  'AM', 'AN', 'AS', 'AT', 'AH', 'AW', 'AY', 'BE', 'BY', 'DO', 'GO', 'HA', 'HE',
+  'HI', 'HM', 'HO', 'IF', 'IN', 'IS', 'IT', 'MA', 'ME', 'MY', 'NO', 'OF', 'OH',
+  'OK', 'ON', 'OR', 'OW', 'OX', 'PA', 'SO', 'TO', 'UH', 'UM', 'UP', 'WE', 'YE', 'YO',
+]);
+
+function spellToken(letters) {
+  return String(letters)
+    .toUpperCase()
+    .split('')
+    .map((c) => PHONETIC[c] || c)
+    .join(' ');
+}
+
+/** Replace uppercase initialisms with their spoken letter sounds (US -> "you ess"). */
+export function spellAcronyms(text) {
+  return String(text)
+    // Dotted forms first: U.S. / U.S.A. -> spell the letters.
+    .replace(/\b(?:[A-Za-z]\.){2,}/g, (m) => spellToken(m.replace(/[^A-Za-z]/g, '')))
+    // Plain UPPERCASE tokens of 2+ letters.
+    .replace(/\b[A-Z]{2,}\b/g, (m) => {
+      if (SPELL_ALWAYS.has(m)) return spellToken(m);
+      if (m.length === 2 && !KEEP_TWO_LETTER.has(m)) return spellToken(m);
+      return m; // longer words / names (NORAD, DEFCON, JOSHUA) read normally
+    });
 }
