@@ -957,6 +957,12 @@ input:focus {
   font-size: 0.72rem;
   margin: 2px 0;
 }
+.cp-announce {
+  width: 100%;
+  color: var(--fg-dim);
+  font-size: 0.7rem;
+  margin: 2px 0;
+}
 .cp-say.long {
   color: var(--amber);
   line-height: 1.4;

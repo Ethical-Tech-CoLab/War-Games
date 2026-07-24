@@ -108,6 +108,12 @@ Two modules, zero dependencies, no network:
 Optional, in-character audio + text commentary that follows the **session's tone**.
 
 - **Off by default** — a **Commentary** checkbox enables it (and unlocks audio).
+- **Move vocalization**: when commentary is on, every move (yours and the engine's) is first
+  spoken aloud with its board coordinates, e.g. *"PROFESSOR RHODES MOVES PAWN FROM E 2 TO E 4,
+  CHECK."* or *"YOU CASTLE KINGSIDE."* — including captures ("CAPTURING THE KNIGHT") and
+  promotions. The mover is named by tone (the persona, or "PROFESSOR RHODES" in the
+  professor/berserk voice); the player's moves are narrated as "YOU". Any flavor commentary
+  follows the announcement.
 - **Voice/tone selector**: `Auto (match session)` (default), `Normal — Joshua`, `Professor`,
   `Berserk`. *Auto* reads `SETTINGS.ui.sessionTone`, which the game engine sets to `berserk`
   when the mad-professor easter egg fires and `normal` otherwise — so chess inherits the mood

@@ -15,10 +15,13 @@ import {
   findKing,
   moveToText,
   sqName,
+  FILES,
   GLYPH,
   aiMove,
 } from './chess.js';
 import { SETTINGS } from './config.js';
+
+const PIECE_NAME = { p: 'PAWN', n: 'KNIGHT', b: 'BISHOP', r: 'ROOK', q: 'QUEEN', k: 'KING' };
 
 // Optional spoken commentary, in the same voice as the current session. Picked by event
 // (checkmate/stalemate > check > capture > plain move) and by tone.
@@ -185,9 +188,8 @@ export class ChessPanel {
   }
 
   /** Speak + log a tone-appropriate quip for the given move event. */
-  _maybeComment(who, capture) {
-    if (!this.commentary) return;
-    const st = statusOf(this.state);
+  _maybeComment(ctx) {
+    const { who, capture, status: st } = ctx;
     if (st === 'checkmate') { this._say(who === 'ai' ? 'win' : 'lose'); return; }
     if (st === 'stalemate') { this._say('draw'); return; }
     // Occasionally, after its OWN move, take a longer window to gloat or coach.
@@ -199,6 +201,41 @@ export class ChessPanel {
     // Don't over-narrate quiet player moves.
     if (who === 'human' && kind === 'playerMove' && Math.random() > 0.5) return;
     this._say(kind);
+  }
+
+  _announcerName() {
+    const t = this._effectiveTone();
+    return t === 'berserk' || t === 'professor' ? 'PROFESSOR RHODES' : this.persona;
+  }
+
+  _spokenSquare(sq) {
+    // "E 4" — a space so the voice says the file letter then the rank number distinctly.
+    return `${FILES[sq[1]].toUpperCase()} ${8 - sq[0]}`;
+  }
+
+  /** Vocalize the move itself, e.g. "PROFESSOR RHODES MOVES PAWN FROM E 2 TO E 4, CHECK." */
+  _announceMove(ctx) {
+    const { who, mv, movedType, capturedType, status } = ctx;
+    const mover = who === 'human' ? 'YOU' : this._announcerName();
+    let text;
+    if (mv.castle) {
+      const verb = who === 'human' ? 'CASTLE' : 'CASTLES';
+      text = `${mover} ${verb} ${mv.castle === 'K' ? 'KINGSIDE' : 'QUEENSIDE'}.`;
+    } else {
+      const verb = who === 'human' ? 'MOVE' : 'MOVES';
+      const piece = PIECE_NAME[movedType] || 'PIECE';
+      text = `${mover} ${verb} ${piece} FROM ${this._spokenSquare(mv.from)} TO ${this._spokenSquare(mv.to)}`;
+      if (capturedType) text += `, CAPTURING THE ${PIECE_NAME[capturedType]}`;
+      if (mv.promo) text += `, PROMOTING TO ${PIECE_NAME[mv.promo]}`;
+      text += '.';
+    }
+    if (status === 'check') text += ' CHECK.';
+    if (this.audio) this.audio.speak(text);
+    const div = document.createElement('div');
+    div.className = 'cp-announce';
+    div.textContent = text;
+    this.el.log.appendChild(div);
+    this.el.log.scrollTop = this.el.log.scrollHeight;
   }
 
   /** Rare, longer commentary: gloat when clearly ahead, coach when a side is clearly behind.
@@ -412,14 +449,24 @@ export class ChessPanel {
   }
 
   _commit(mv, who = 'human') {
-    const capture = this.state.board[mv.to[0]][mv.to[1]] !== '.' || !!mv.ep;
+    const pre = this.state;
+    const movedType = mv.promo ? 'p' : pre.board[mv.from[0]][mv.from[1]].toLowerCase();
+    const capturedType = mv.ep
+      ? 'p'
+      : pre.board[mv.to[0]][mv.to[1]] !== '.'
+      ? pre.board[mv.to[0]][mv.to[1]].toLowerCase()
+      : null;
     this._logMove(mv);
-    this.state = applyMove(this.state, mv);
+    this.state = applyMove(pre, mv);
     this.lastMove = { from: mv.from, to: mv.to };
     this.selected = null;
     this.targets = [];
     this.render();
-    this._maybeComment(who, capture);
+    const ctx = { who, mv, movedType, capturedType, capture: !!capturedType, status: statusOf(this.state) };
+    if (this.commentary) {
+      this._announceMove(ctx); // "PROFESSOR RHODES MOVES PAWN FROM E 2 TO E 4."
+      this._maybeComment(ctx); // ...then any flavor commentary
+    }
   }
 
   _afterHuman() {
