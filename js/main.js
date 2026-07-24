@@ -87,13 +87,18 @@ function prefillLlmFields() {
   const p = resolveProxy();
   updateLlmHint(p);
   const modelParam = new URLSearchParams(location.search).get('model');
+  const model = modelParam || (p.managed ? 'openai/gpt-4o-mini' : SETTINGS.llm.model);
+  setupModelPicker(
+    document.getElementById('llm-model-select'),
+    document.getElementById('llm-model-custom-field'),
+    els.llmModel,
+    model
+  );
   if (p.managed) {
     els.llmEndpoint.value = p.url;
-    els.llmModel.value = modelParam || 'openai/gpt-4o-mini';
     els.llmKey.value = 'proxy-managed';
   } else {
     els.llmEndpoint.value = SETTINGS.llm.endpoint;
-    els.llmModel.value = modelParam || SETTINGS.llm.model;
     try {
       els.llmKey.value = localStorage.getItem(LLM_KEY_STORE) || '';
     } catch {
@@ -102,17 +107,49 @@ function prefillLlmFields() {
   }
 }
 
-/** Fill the shared <datalist> used by the menu + Admin Console model inputs. */
-function populateModelOptions() {
-  const dl = document.getElementById('model-options');
-  if (!dl) return;
-  dl.innerHTML = '';
+/** Fill a model <select> from the catalog (+ a "Custom…" entry) and select currentId.
+ *  Returns true if currentId matched a catalog entry. */
+function fillModelSelect(sel, currentId) {
+  if (!sel) return false;
+  sel.innerHTML = '';
+  let matched = false;
   for (const m of SETTINGS.llm.catalog || []) {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.label = m.label;
-    dl.appendChild(opt);
+    const o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = m.label;
+    sel.appendChild(o);
+    if (m.id === currentId) matched = true;
   }
+  const custom = document.createElement('option');
+  custom.value = '__custom__';
+  custom.textContent = 'Custom model id…';
+  sel.appendChild(custom);
+  sel.value = matched ? currentId : '__custom__';
+  return matched;
+}
+
+/** Wire a select + custom-id field so the model choice is discoverable AND captured. */
+function setupModelPicker(sel, customField, customInput, currentId) {
+  if (!sel) return;
+  const matched = fillModelSelect(sel, currentId);
+  if (customField) customField.hidden = matched;
+  if (customInput) customInput.value = matched ? '' : currentId || '';
+  sel.onchange = () => {
+    const isCustom = sel.value === '__custom__';
+    if (customField) customField.hidden = !isCustom;
+    if (isCustom) {
+      if (customInput) customInput.focus();
+    } else if (sel.value) {
+      SETTINGS.llm.model = sel.value; // applies immediately (menu re-reads on CONNECT)
+    }
+  };
+}
+
+/** The model chosen in the START menu (the select value, or the custom field). */
+function menuSelectedModel() {
+  const sel = document.getElementById('llm-model-select');
+  if (!sel) return els.llmModel.value.trim();
+  return sel.value === '__custom__' ? els.llmModel.value.trim() : sel.value;
 }
 
 els.nameSelect.addEventListener('change', updateNameHint);
@@ -129,7 +166,7 @@ els.startBtn.addEventListener('click', () => {
 
   if (mode === 'llm') {
     const p = resolveProxy();
-    SETTINGS.llm.model = els.llmModel.value.trim() || SETTINGS.llm.model;
+    SETTINGS.llm.model = menuSelectedModel() || SETTINGS.llm.model;
     if (p.managed) {
       // Proxy handles auth server-side; no key needed in the browser.
       SETTINGS.llm.endpoint = p.url;
@@ -252,7 +289,12 @@ function acSyncConfigInputs() {
   ac.temp.value = String(Math.round(temp * 10));
   ac.tempVal.textContent = temp.toFixed(1);
   ac.maxtokens.value = String(SETTINGS.llm.maxTokens ?? 500);
-  ac.model.value = SETTINGS.llm.model || '';
+  setupModelPicker(
+    document.getElementById('ac-model-select'),
+    document.getElementById('ac-model-custom-field'),
+    ac.model,
+    SETTINGS.llm.model
+  );
 }
 
 function acOpen() {
@@ -365,7 +407,6 @@ els.restartBtn.addEventListener('click', () => {
 
 // ---------- Init ----------
 populateNameSets();
-populateModelOptions();
 prefillLlmFields();
 // Reflect the film title token in the menu subtitle if desired later via applyNames.
 void applyNames;

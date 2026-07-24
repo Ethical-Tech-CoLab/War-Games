@@ -59,13 +59,16 @@
             </label>
             <label class="field">
               <span class="field-label">MODEL</span>
-              <input id="llm-model" type="text" spellcheck="false" list="model-options" />
-              <datalist id="model-options"></datalist>
+              <select id="llm-model-select"></select>
+            </label>
+            <label class="field" id="llm-model-custom-field" hidden>
+              <span class="field-label">CUSTOM MODEL ID</span>
+              <input id="llm-model" type="text" spellcheck="false" />
             </label>
             <p class="field-hint">
-              GitHub Models ids (e.g. <code>openai/gpt-4o-mini</code>) run in the cloud; on-box
-              ids (e.g. <code>gemma3:12b</code>, <code>qwen3:14b</code>) run on the B3IQ GPU.
-              The same proxy routes by model id — pick one from the list or type your own.
+              Cloud models (e.g. <code>openai/gpt-4o-mini</code>) run on GitHub Models; the
+              B3IQ options (e.g. <code>gemma3:12b</code>, <code>qwen3:14b</code>) run on the
+              on-box GPU. The same proxy routes by the model id you pick.
             </p>
             <label class="field">
               <span class="field-label">API KEY (stored only in your browser)</span>
@@ -143,7 +146,9 @@
             <label class="ac-field col"><span>Max tokens</span>
               <input type="number" id="ac-maxtokens" min="16" max="4096" step="16" /></label>
             <label class="ac-field col"><span>Model (next request)</span>
-              <input type="text" id="ac-model" spellcheck="false" list="model-options" /></label>
+              <select id="ac-model-select"></select></label>
+            <label class="ac-field col" id="ac-model-custom-field" hidden><span>Custom model id</span>
+              <input type="text" id="ac-model" spellcheck="false" /></label>
             <p class="ac-note">Model / temperature / token changes apply to the NEXT AI request.</p>
           </section>
 

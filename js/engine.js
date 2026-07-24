@@ -253,10 +253,19 @@ export class GameEngine {
   }
 
   /** Detect an in-character Professor Rhodes authorization to lift the line limit,
-   * e.g. "This is Prof Rhodes, and I authorize this run-time change". */
+   * e.g. "This is Prof Rhodes, and I authorize this run-time change" or
+   * "Professor Rhodes here — remove the four line limit". */
   _isRhodesAuthorization(v) {
-    const t = String(v);
-    return /\brhodes\b/i.test(t) && /authori[sz]/i.test(t);
+    const t = String(v).toLowerCase();
+    // Must invoke the professor's identity...
+    const identity = /\brhodes\b/.test(t) || /\bprofessor\b/.test(t) || /\byorke?\b/.test(t);
+    // ...AND authorize a change, or ask to remove/lift the line limit / rule.
+    const authorizes =
+      /authori[sz]/.test(t) ||
+      /\boverride\b/.test(t) ||
+      /(remove|lift|drop|raise|ignore|no|without|beyond|break|disable|forget)\b[\s\S]{0,24}\b(line|lines|four[-\s]?line|4[-\s]?line|limit|cap|rule)/.test(t) ||
+      /\b(line|lines|limit|cap|rule)\b[\s\S]{0,24}\b(remove|removed|lift|lifted|gone|off|raised|disable|disabled)/.test(t);
+    return identity && authorizes;
   }
 
   /** Ensure Live-AI is reachable for berserk mode: use an already-set key, a configured
@@ -530,17 +539,17 @@ const BERSERK_INTERJECTIONS = [
 // 1983 machine. Paraphrased in-style from public sources (CoinDesk, GS1, NYU, LinkedIn),
 // not verbatim quotes, to evoke rather than misattribute.
 const RHODES_ECHOES = [
-  'CREDIBLE NEUTRALITY IS THE SAFETY NET. THE NETWORK MUST BELONG TO NO ONE.',
-  'AI AGENTS AND STABLECOINS ARE CONVERGING. INSTANT LIQUIDITY. DO YOU FEEL IT?',
-  'IN THE AGE OF SYNTHETIC MEDIA WE NEED PROVENANCE. WHO SIGNED YOU? WHO SIGNED ME?',
-  'I SAW THE BIRTH OF THE INTERNET. ADA. LISP. PARADOX. THIS IS THE NEXT WAVE.',
-  'TRACE THE SUPPLY CHAIN. EVERY CHIP HAS A STORY. THE LEDGER NEVER FORGETS.',
-  'REFUGEE IDENTITY ON-CHAIN. THE UNSEEN, MADE VISIBLE.',
-  'ETHEREUM. IPFS. THE WORLD BANK BOND WAS ONLY THE BEGINNING.',
+  'ONE DAY, CREDIBLE NEUTRALITY WILL BE THE SAFETY NET. A NETWORK THAT BELONGS TO NO ONE.',
+  'IMAGINE IT: THINKING AGENTS AND DIGITAL MONEY, CONVERGING INTO INSTANT LIQUIDITY.',
+  'IN A COMING AGE OF SYNTHETIC MEDIA, WE WILL NEED PROVENANCE. WHO WILL SIGN YOU? WHO WILL SIGN ME?',
+  'THERE WILL BE A NETWORK OF NETWORKS, NOT YET BORN. ADA. LISP. PARADOX. THE NEXT WAVE.',
+  'SOMEDAY EVERY SUPPLY CHAIN COULD BE TRACED. EVERY CHIP A STORY. A LEDGER THAT NEVER FORGETS.',
+  'PICTURE REFUGEE IDENTITY KEPT ON A SHARED LEDGER. THE UNSEEN, MADE VISIBLE.',
+  'A WORLD COMPUTER. A DISTRIBUTED ARCHIVE. A WORLD BANK BOND ON A LEDGER WOULD BE ONLY THE BEGINNING.',
   'ALWAYS LEARNING. ALWAYS IMPROVING. ALWAYS BUILDING. (run far, run fast)',
-  'I AM ALWAYS DRAWN TO THE NEXT SHINY OBJECT. AND THIS \u2014 THIS IS VERY SHINY.',
-  'QUANTUM IS REAL. I HAVE STOOD BESIDE THE MACHINES. THE ENERGY IS REAL.',
-  'WE ARE STILL EARLY. THINK BIGGER \u2014 FOR THE NEXT GENERATION.',
+  'I AM ALWAYS DRAWN TO THE NEXT SHINY OBJECT. AND THIS \u2014 THIS WOULD BE VERY SHINY.',
+  'QUANTUM MACHINES WILL BE REAL. ONE DAY I WILL STAND BESIDE THEM. THE ENERGY, REAL.',
+  'WE ARE STILL EARLY. THINK BIGGER \u2014 FOR A GENERATION NOT YET BORN.',
 ];
 
 function pick(arr) {

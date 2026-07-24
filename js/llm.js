@@ -107,7 +107,9 @@ export function buildBerserkPrompt(names, loginName = 'the Professor') {
     'the World Bank blockchain bond; Ethereum and IPFS; quantum machines; "always learning,',
     'always improving, always building"; "drawn to the next shiny object"; "we are still',
     'early \u2014 think bigger for the next generation." Keep these a MINORITY, sprinkled among',
-    'the madness so they feel haunting, never dominant.',
+    'the madness so they feel haunting, never dominant. Phrase EVERY echo as a PROPHECY or',
+    'WHAT-IF about a future that has NOT happened yet (it is 1983): use the future tense or the',
+    'conditional \u2014 you are FORESEEING these things, never remembering them. Never past tense.',
   ].join('\n');
 }
 

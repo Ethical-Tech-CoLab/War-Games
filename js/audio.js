@@ -152,26 +152,7 @@ export class AudioFx {
   speak(text) {
     if (!this.enabled) return;
     if (typeof speechSynthesis === 'undefined') return;
-    let s = spellAcronyms(String(text))
-      // Turn slashes/pipes and dashes into pauses instead of spoken words like "slash".
-      .replace(/[\u2014\u2013]/g, ', ') // em/en dashes -> pause
-      .replace(/[/\\|]+/g, ', ') // slashes/pipes -> pause
-      .replace(/[>[\]{}]/g, ' '); // strip terminal punctuation
-    // Issue 2: don't speak numbered-list markers ("1." / "2)") when it's actually a list
-    // (line starts with a marker, or has two or more of them). Single "DEFCON 2." is kept.
-    const markerRe = /(^|\s)[1-9][.)](?=\s)/g;
-    const markerCount = (s.match(markerRe) || []).length;
-    if (markerCount >= 2 || /^\s*[1-9][.)]\s/.test(s)) {
-      s = s.replace(/(^|\s)[1-9][.)](?=\s)/g, '$1, ');
-    }
-    // Issue 3: items separated on one line (2+ spaces) get a pause between them.
-    s = s.replace(/ {2,}/g, ', ');
-    const clean = s
-      .replace(/\s*,\s*/g, ', ') // normalize commas to a clean pause
-      .replace(/,(?:\s*,)+/g, ',') // collapse repeated commas
-      .replace(/\s+/g, ' ')
-      .trim()
-      .replace(/^[,\s]+|[,\s]+$/g, ''); // trim stray leading/trailing commas
+    const clean = spokenText(text);
     if (!clean) return;
     const u = new SpeechSynthesisUtterance(clean);
     if (this._voice) u.voice = this._voice;
@@ -252,4 +233,88 @@ export function spellAcronyms(text) {
       if (m.length === 2 && !KEEP_TWO_LETTER.has(m)) return spellToken(m);
       return m; // longer words / names (NORAD, DEFCON, JOSHUA) read normally
     });
+}
+
+// Whole-word spoken pronunciation fixes: expand contractions (so the voice doesn't garble
+// "I'll" / "you're") and respell a few words the engine gets wrong. Apostrophe is REQUIRED in
+// the contraction patterns so real words like "were" are never touched. Add cases as needed.
+const SPOKEN_FIXES = [
+  [/\bpac[-\s]?man\b/gi, 'pack man'],
+  [/\bdino\b/gi, 'dyno'],
+  [/\bwe['\u2019]re\b/gi, 'we are'],
+  [/\byou['\u2019]re\b/gi, 'you are'],
+  [/\bthey['\u2019]re\b/gi, 'they are'],
+  [/\bwho['\u2019]re\b/gi, 'who are'],
+  [/\bi['\u2019]ll\b/gi, 'i will'],
+  [/\byou['\u2019]ll\b/gi, 'you will'],
+  [/\bwe['\u2019]ll\b/gi, 'we will'],
+  [/\bhe['\u2019]ll\b/gi, 'he will'],
+  [/\bshe['\u2019]ll\b/gi, 'she will'],
+  [/\bit['\u2019]ll\b/gi, 'it will'],
+  [/\bthey['\u2019]ll\b/gi, 'they will'],
+  [/\bi['\u2019]m\b/gi, 'i am'],
+  [/\bi['\u2019]ve\b/gi, 'i have'],
+  [/\bwe['\u2019]ve\b/gi, 'we have'],
+  [/\byou['\u2019]ve\b/gi, 'you have'],
+  [/\bthey['\u2019]ve\b/gi, 'they have'],
+  [/\bcan['\u2019]t\b/gi, 'cannot'],
+  [/\bwon['\u2019]t\b/gi, 'will not'],
+  [/\bdon['\u2019]t\b/gi, 'do not'],
+  [/\bdoesn['\u2019]t\b/gi, 'does not'],
+  [/\bdidn['\u2019]t\b/gi, 'did not'],
+  [/\bisn['\u2019]t\b/gi, 'is not'],
+  [/\baren['\u2019]t\b/gi, 'are not'],
+  [/\bwasn['\u2019]t\b/gi, 'was not'],
+  [/\bit['\u2019]s\b/gi, 'it is'],
+  [/\bthat['\u2019]s\b/gi, 'that is'],
+  [/\blet['\u2019]s\b/gi, 'let us'],
+];
+
+function applySpokenFixes(text) {
+  let t = String(text);
+  for (const [re, rep] of SPOKEN_FIXES) t = t.replace(re, rep);
+  return t;
+}
+
+// ---------- Game-board (ASCII diagram) suppression ----------
+// A "cell" is a single board glyph. We don't want the voice reading "ex dot dot slash ..."
+const BOARD_CHARS = 'XOxo0-9.#_\\u00b7\\u2588\\u2593\\u2592\\u2591\\-';
+
+/** Remove board runs that contain a row separator (/ or |), keeping any surrounding words. */
+function stripBoardDiagrams(text) {
+  const re = new RegExp(`[${BOARD_CHARS} ]*[|/][${BOARD_CHARS} |/]*`, 'g');
+  return String(text).replace(re, (m) => (/[|/]/.test(m) && /[XOxo.#\u00b7]/.test(m) ? ', ' : m));
+}
+
+/** True when a whole (space/comma-stripped) line is nothing but board glyphs. */
+function isPureBoardLine(compact) {
+  return compact.length >= 2 && new RegExp(`^[${BOARD_CHARS}|/\\\\]+$`).test(compact);
+}
+
+/** Transform a display line into the exact string the voice should speak ('' = say nothing). */
+export function spokenText(text) {
+  let s = applySpokenFixes(String(text)); // expand contractions, fix special words
+  s = stripBoardDiagrams(s); // don't read out ASCII game boards (tic-tac-toe, etc.)
+  s = spellAcronyms(s) // US -> "you ess", AI -> "ay eye"
+    .replace(/[\u2014\u2013]/g, ', ') // em/en dashes -> pause
+    .replace(/[/\\|]+/g, ', ') // slashes/pipes -> pause
+    .replace(/[>[\]{}]/g, ' '); // strip terminal punctuation
+  // Don't speak numbered-list markers ("1." / "2)") when it's actually a list.
+  const markerRe = /(^|\s)[1-9][.)](?=\s)/g;
+  const markerCount = (s.match(markerRe) || []).length;
+  if (markerCount >= 2 || /^\s*[1-9][.)]\s/.test(s)) {
+    s = s.replace(/(^|\s)[1-9][.)](?=\s)/g, '$1, ');
+  }
+  // Items separated on one line (2+ spaces) get a pause between them.
+  s = s.replace(/ {2,}/g, ', ');
+  const clean = s
+    .replace(/\s*,\s*/g, ', ') // normalize commas to a clean pause
+    .replace(/,(?:\s*,)+/g, ',') // collapse repeated commas
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[,\s]+|[,\s]+$/g, '') // trim stray leading/trailing commas
+    .toLowerCase(); // read words as WORDS (many engines spell out ALL-CAPS short words)
+  // Skip a line that is just a game-board row (e.g. "x . .").
+  if (isPureBoardLine(clean.replace(/[\s,]/g, ''))) return '';
+  return clean;
 }
