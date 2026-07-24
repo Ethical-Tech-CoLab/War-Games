@@ -69,6 +69,28 @@ function resolveProxy() {
   return { url: '', managed: false, source: 'none' };
 }
 
+/**
+ * Resilience against the ephemeral tunnel URL rotating: fetch the canonical discovery doc
+ * (ai-proxy.json, served same-origin) and adopt its proxyUrl. This means when the tunnel
+ * changes, updating ONE file (ai-proxy.json) points every tool at the new URL — no code
+ * change or redeploy. Falls back silently to SETTINGS.llm.proxyUrl (config.js) on any error,
+ * and never overrides an explicit ?proxy= choice.
+ */
+async function loadProxyDiscovery() {
+  if (new URLSearchParams(location.search).get('proxy')) return; // explicit override wins
+  try {
+    const res = await fetch('ai-proxy.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && typeof data.proxyUrl === 'string' && /^https?:\/\//.test(data.proxyUrl)) {
+      SETTINGS.llm.proxyUrl = data.proxyUrl;
+      if (!els.menuOverlay.hidden) prefillLlmFields(); // refresh the menu if it's showing
+    }
+  } catch {
+    /* offline or file missing — keep the hardcoded fallback */
+  }
+}
+
 function updateLlmHint(p) {
   if (!els.llmHint) return;
   if (p.managed) {
@@ -408,5 +430,6 @@ els.restartBtn.addEventListener('click', () => {
 // ---------- Init ----------
 populateNameSets();
 prefillLlmFields();
+loadProxyDiscovery();
 // Reflect the film title token in the menu subtitle if desired later via applyNames.
 void applyNames;
