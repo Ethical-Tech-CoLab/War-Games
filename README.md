@@ -21,6 +21,82 @@ mode — tokens in/out and latency) are captured locally and exportable as JSON.
 
 ---
 
+## Architecture — as an educational tool
+
+The system is designed so the learning experience and the infrastructure that makes it
+safe, transparent, and low-cost are both visible. It contrasts *deterministic* rules with
+*emergent* LLM behavior, exposes exactly what the model does, and hides secrets behind a
+proxy that can serve either cloud or on-device models.
+
+```mermaid
+flowchart TB
+  subgraph LEARN["🎓 Learner - any modern browser"]
+    U["Plays a WarGames-inspired thriller<br/>Goal: discover — the only winning move is not to play"]
+  end
+
+  subgraph PAGES["📄 GitHub Pages · static, no server · ethical-tech-colab.github.io"]
+    WG["War-Games app<br/>vanilla JS ES modules · CRT terminal UI"]
+    DISC[("ai-proxy.json<br/>proxy-URL discovery")]
+    OTHER["Sibling org tools<br/>same origin, auto allow-listed"]
+  end
+
+  subgraph EXP["🕹️ Experience modes — teach AI behavior"]
+    SCR["Scripted<br/>deterministic dialogue graph"]
+    LIVE["Live-AI<br/>real LLM persona + DEFCON state machine"]
+    BER["Berserk easter egg<br/>emergent, unbounded persona"]
+  end
+
+  subgraph OBS["🔎 Transparency tools — teach how AI works"]
+    ADMIN["Admin Console<br/>exact prompt + raw response · live config"]
+    TELE["Per-turn telemetry<br/>tokens · latency · DEFCON · parse status"]
+    MARK["◆ marker on every AI-generated line"]
+  end
+
+  subgraph NODE["🖥️ B3IQ GPU node — owned US hardware"]
+    TUN["Cloudflare tunnel<br/>public HTTPS (ephemeral)"]
+    PROXY["pages-ai-proxy<br/>CORS + origin allow-list<br/>server-side token injection<br/>routes by model id"]
+    PUB["publish-url.sh<br/>records + republishes URL"]
+    OLLAMA["Ollama · on-box GPU<br/>gemma3 · qwen3 · deepseek-r1"]
+  end
+
+  subgraph CLOUD["☁️ Cloud upstream"]
+    GHM["GitHub Models<br/>openai/gpt-4o-mini · gpt-4o"]
+  end
+
+  U --> WG
+  WG --> SCR
+  WG --> LIVE
+  WG --> BER
+  WG --> ADMIN
+  WG --> TELE
+  WG --> MARK
+  WG -.->|"read current URL"| DISC
+  OTHER -.->|"read current URL"| DISC
+  SCR -.->|"graceful fallback if AI down"| LIVE
+
+  LIVE ==>|"POST /v1/chat/completions · no key in browser"| TUN
+  BER ==> TUN
+  OTHER ==> TUN
+  TUN --> PROXY
+  PROXY ==>|"cloud model id"| GHM
+  PROXY ==>|"local model id"| OLLAMA
+  TUN -.->|"current URL"| PUB
+  PUB -.->|"auto-publish"| DISC
+```
+
+**How each part serves the educational goal**
+
+| Layer | What it teaches |
+|---|---|
+| **Experience modes** | Scripted vs Live-AI vs Berserk lets learners contrast *deterministic* rules with *emergent* LLM behavior — and feel the core AI-safety lesson viscerally. |
+| **Transparency tools** | The Admin Console (exact prompt/response), per-turn telemetry, and the ◆ marker make the model's reasoning *observable* — so a learner or educator can literally watch when it "goes off the rails." |
+| **Proxy (token hiding + allow-list)** | Demonstrates how a static site safely uses AI without leaking secrets, and how CORS/origin allow-listing gates access. |
+| **Model routing** | One endpoint, two backends — teaches cloud (GitHub Models) vs on-device GPU (Ollama) trade-offs (cost, privacy, latency). |
+| **Discovery + auto-publish** | Shows a resilience pattern: consumers read one durable file (`ai-proxy.json`) instead of a brittle hardcoded URL. |
+| **Owned hardware (B3IQ)** | Illustrates running your own inference infrastructure rather than renting a black-box API. |
+
+---
+
 ## Run it locally
 
 ES modules require an HTTP server (opening `index.html` via `file://` will not work).
