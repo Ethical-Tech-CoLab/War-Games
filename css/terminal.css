@@ -434,6 +434,12 @@ input:focus {
   text-shadow: 0 0 8px rgba(255, 157, 60, 0.5);
 }
 
+/* Critical red — reserved for the dramatic "ACCESS OVERRIDE" login beat. */
+.line.critical {
+  color: var(--red);
+  text-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+}
+
 .line.ending {
   color: var(--fg-bright);
   font-weight: bold;
@@ -454,10 +460,10 @@ input:focus {
    (configurable via SETTINGS.ui.aiMarkerChar). Hidden globally when .hide-ai-marker is set. */
 .line.ai::before {
   content: attr(data-ai-marker);
-  color: var(--amber);
+  color: var(--fg-bright);
   opacity: 0.85;
   margin-right: 0.6ch;
-  text-shadow: 0 0 6px rgba(255, 204, 51, 0.4);
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.5);
 }
 
 .crt.hide-ai-marker .line.ai::before {

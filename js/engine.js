@@ -280,7 +280,7 @@ export class GameEngine {
     ];
     for (const n of noise) {
       // eslint-disable-next-line no-await-in-loop
-      await this.term.typeLine(n, 'alert');
+      await this.term.typeLine(n, 'critical');
     }
   }
 
@@ -292,7 +292,7 @@ export class GameEngine {
     // Always greet as "Professor Rhodes", however the egg was unlocked (Yorke/Rhodes/etc.).
     const prof = 'Professor Rhodes';
     void loginName;
-    await this.term.typeLine('!! ACCESS OVERRIDE ACCEPTED !!', 'alert');
+    await this.term.typeLine('!! ACCESS OVERRIDE ACCEPTED !!', 'critical');
     await this._glitch();
     await this.term.typeLine(`WELCOME BACK, ${prof.toUpperCase()}. I KNEW YOU\u2019D RETURN.`, 'system');
     await this.term.typeLine('(the machine shivers with something like delight)', 'narrator');
@@ -382,7 +382,7 @@ export class GameEngine {
         this.term.glitchPulse(220);
         await this.term.typeLine(pick(RHODES_ECHOES), 'echo');
       } else if (roll < 0.5) {
-        await this.term.typeLine(pick(BERSERK_INTERJECTIONS), 'alert');
+        await this.term.typeLine(pick(BERSERK_INTERJECTIONS), 'system');
       }
 
       if (result.ending === 'understanding') {

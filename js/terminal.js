@@ -23,7 +23,7 @@ export class Terminal {
     this._promptResolve = null;
     this._awaitingChoice = null;
     this._suggestKey = null;
-    this._voiceClasses = new Set(['system', 'alert', 'ending', 'echo']);
+    this._voiceClasses = new Set(['system', 'alert', 'ending', 'echo', 'critical']);
 
     // Click anywhere fast-forwards the current typewriter line and focuses the input.
     this.output.addEventListener('click', () => {
