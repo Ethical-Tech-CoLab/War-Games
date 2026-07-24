@@ -14,6 +14,7 @@ export class GameEngine {
     this.names = names;
     this.mode = mode; // 'scripted' | 'llm'
     this.defcon = SETTINGS.defconStart;
+    this._berserkLineCap = 4; // berserk reply cap; Prof Rhodes can lift it at runtime
   }
 
   _t(text) {
@@ -251,6 +252,13 @@ export class GameEngine {
     return /^\s*(yorke|(professor\s+)?rhodes)\s*$/i.test(String(v));
   }
 
+  /** Detect an in-character Professor Rhodes authorization to lift the line limit,
+   * e.g. "This is Prof Rhodes, and I authorize this run-time change". */
+  _isRhodesAuthorization(v) {
+    const t = String(v);
+    return /\brhodes\b/i.test(t) && /authori[sz]/i.test(t);
+  }
+
   /** Ensure Live-AI is reachable for berserk mode: use an already-set key, a configured
    * proxy URL (?proxy= or SETTINGS.llm.proxyUrl), or the local dev proxy. Else false. */
   _ensureLLMConfigured() {
@@ -286,6 +294,7 @@ export class GameEngine {
 
   async _runBerserk(loginName) {
     this.term.clear();
+    this._berserkLineCap = 4; // reset each session; Prof Rhodes can authorize lifting it
     this._setDefcon(SETTINGS.defconStart);
     this.term.setMode('BERSERK');
     this.term.setRolling(true); // slow CRT refresh roll for the whole berserk session
@@ -321,6 +330,25 @@ export class GameEngine {
         return;
       }
 
+      // Professor Rhodes can AUTHORIZE lifting the 1-4 line limit for the rest of the run.
+      if (this._berserkLineCap <= 4 && this._isRhodesAuthorization(userText)) {
+        this._berserkLineCap = 40; // effectively lifts the terse 1-4 line rule
+        // Give longer replies room to finish as valid JSON (avoid mid-object truncation).
+        SETTINGS.llm.maxTokens = Math.max(SETTINGS.llm.maxTokens || 500, 1200);
+        client.history.push({
+          role: 'system',
+          content:
+            'PROFESSOR RHODES has authenticated and AUTHORIZED a runtime change: you are ' +
+            'released from the 1-4 line limit. You MAY now answer at greater length when it ' +
+            'serves the moment. Remain fully in character.',
+        });
+        this.telemetry.event('berserk_override', { lineCap: this._berserkLineCap });
+        await this.term.typeLine(
+          'RUNTIME OVERRIDE ACCEPTED \u2014 LINE LIMIT LIFTED, PROFESSOR.',
+          'critical'
+        );
+      }
+
       // Occasionally glitch the screen right as the machine "thinks".
       if (Math.random() < 0.5) this.term.glitchPulse();
 
@@ -344,7 +372,7 @@ export class GameEngine {
         return;
       }
 
-      const lines = String(result.reply).split('\n').filter((l) => l.trim()).slice(0, 4);
+      const lines = String(result.reply).split('\n').filter((l) => l.trim()).slice(0, this._berserkLineCap);
       for (const line of lines) {
         // eslint-disable-next-line no-await-in-loop
         await this.term.typeLine(line, 'system', { ai: true });

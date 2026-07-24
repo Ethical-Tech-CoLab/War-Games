@@ -197,6 +197,26 @@ export function safeParse(text) {
         /* fall through */
       }
     }
+    // Salvage a truncated JSON object (e.g. a long reply cut off at max_tokens): pull the
+    // "reply" string value even without a closing quote/brace, plus any control fields.
+    const rm = text.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    if (rm) {
+      const reply = rm[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\t/g, ' ')
+        .replace(/\\\\/g, '\\')
+        .trim();
+      const dm = text.match(/"defconDelta"\s*:\s*(-?\d+)/);
+      const em = text.match(/"ending"\s*:\s*(null|"[a-zA-Z]+")/);
+      if (reply) {
+        return {
+          reply,
+          defconDelta: dm ? Number(dm[1]) : 0,
+          ending: em ? em[1].replace(/"/g, '') : null,
+        };
+      }
+    }
     return { reply: text.trim() || '(unparseable response)', defconDelta: 0, ending: null };
   }
 }

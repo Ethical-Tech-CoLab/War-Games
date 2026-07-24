@@ -24,13 +24,8 @@ const els = {
   statusbar: document.getElementById('statusbar'),
   terminal: document.getElementById('terminal'),
   modeBadge: document.getElementById('mode-badge'),
-  telemetryBtn: document.getElementById('telemetry-btn'),
   restartBtn: document.getElementById('restart-btn'),
   soundBtn: document.getElementById('sound-btn'),
-  telemetryOverlay: document.getElementById('telemetry-overlay'),
-  telemetryBody: document.getElementById('telemetry-body'),
-  telemetryClose: document.getElementById('telemetry-close'),
-  telemetryExport: document.getElementById('telemetry-export'),
 };
 
 const LLM_KEY_STORE = 'wargames.llm.apiKey';
@@ -182,7 +177,7 @@ async function startGame({ names, nameSetKey, mode }) {
 function startTelemetryTicker() {
   stopTelemetryTicker();
   telemetryTimer = setInterval(() => {
-    if (!els.telemetryOverlay.hidden) refreshTelemetryPanel();
+    if (ac.panel && !ac.panel.hidden) refreshTelemetryPanel();
   }, 1000);
 }
 function stopTelemetryTicker() {
@@ -190,16 +185,8 @@ function stopTelemetryTicker() {
   telemetryTimer = null;
 }
 function refreshTelemetryPanel() {
-  els.telemetryBody.textContent = telemetry.toText();
+  if (ac.telemetry) ac.telemetry.textContent = telemetry.toText();
 }
-
-els.telemetryBtn.addEventListener('click', () => {
-  refreshTelemetryPanel();
-  els.telemetryOverlay.hidden = false;
-});
-els.telemetryClose.addEventListener('click', () => {
-  els.telemetryOverlay.hidden = true;
-});
 
 els.soundBtn.addEventListener('click', () => {
   const on = !audio.enabled;
@@ -207,7 +194,7 @@ els.soundBtn.addEventListener('click', () => {
   if (on) audio.unlock();
   els.soundBtn.textContent = `SOUND: ${on ? 'ON' : 'OFF'}`;
 });
-els.telemetryExport.addEventListener('click', () => {
+document.getElementById('ac-telemetry-export').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(telemetry.snapshot(), null, 2)], {
     type: 'application/json',
   });
@@ -238,6 +225,7 @@ const ac = {
   tempVal: document.getElementById('ac-temp-val'),
   maxtokens: document.getElementById('ac-maxtokens'),
   model: document.getElementById('ac-model'),
+  telemetry: document.getElementById('ac-telemetry'),
 };
 let acTurns = [];
 
@@ -255,6 +243,7 @@ function acSyncConfigInputs() {
 
 function acOpen() {
   acSyncConfigInputs();
+  refreshTelemetryPanel();
   ac.panel.hidden = false;
   root.classList.add('console-open');
 }
@@ -354,7 +343,6 @@ els.restartBtn.addEventListener('click', () => {
   stopTelemetryTicker();
   els.statusbar.hidden = true;
   els.terminal.hidden = true;
-  els.telemetryOverlay.hidden = true;
   acClose();
   acResetPanel();
   terminal.clear();

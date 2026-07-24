@@ -25,7 +25,6 @@
           <span class="mode-badge" id="mode-badge"></span>
           <button class="ghost-btn" id="sound-btn" type="button">SOUND: ON</button>
           <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
-          <button class="ghost-btn" id="telemetry-btn" type="button">TELEMETRY</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
         </div>
       </header>
@@ -75,19 +74,6 @@
         </div>
       </div>
 
-      <!-- Telemetry panel -->
-      <div class="telemetry-overlay" id="telemetry-overlay" hidden>
-        <div class="telemetry-panel">
-          <div class="telemetry-head">
-            <span>SESSION TELEMETRY</span>
-            <button class="ghost-btn" id="telemetry-close" type="button">CLOSE</button>
-          </div>
-          <pre class="telemetry-body" id="telemetry-body"></pre>
-          <div class="telemetry-actions">
-            <button class="ghost-btn" id="telemetry-export" type="button">EXPORT JSON</button>
-          </div>
-        </div>
-      </div>
 
       <!-- Main terminal output + input. Serial-terminal order: conversation scrolls up in
            the output; choices print ABOVE the entry cursor; the cursor sits at the bottom. -->
@@ -153,6 +139,14 @@
             <label class="ac-field col"><span>Model (next request)</span>
               <input type="text" id="ac-model" spellcheck="false" /></label>
             <p class="ac-note">Model / temperature / token changes apply to the NEXT AI request.</p>
+          </section>
+
+          <section class="ac-section">
+            <div class="ac-section-head"><span>SESSION TELEMETRY</span></div>
+            <pre class="ac-pre" id="ac-telemetry">—</pre>
+            <div class="ac-telemetry-actions">
+              <button class="ghost-btn" id="ac-telemetry-export" type="button">EXPORT JSON</button>
+            </div>
           </section>
         </div>
       </aside>
