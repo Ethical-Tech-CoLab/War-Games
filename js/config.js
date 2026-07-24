@@ -89,7 +89,14 @@ export const SETTINGS = {
     // through it and the token is handled server-side — so Live-AI works on GitHub Pages.
     // Paste your proxy's full URL, e.g. https://pages-ai-proxy.<sub>.workers.dev/v1/chat/completions
     // You can also override at runtime with ?proxy=<url> in the page URL.
-    proxyUrl: '',
+    //
+    // Live deployment: pages-ai-proxy on the B3IQ GPU box, exposed via a Cloudflare
+    // quick tunnel (systemd service `pages-ai-tunnel`, upstream GitHub Models).
+    // NOTE: trycloudflare quick-tunnel URLs are EPHEMERAL — they change if the tunnel
+    // process restarts. If Live-AI stops working, update this URL (see the value logged
+    // by `journalctl -u pages-ai-tunnel` on the box) or switch to a named tunnel for a
+    // stable hostname. Live-AI fails gracefully back to scripted mode when unreachable.
+    proxyUrl: 'https://jury-kijiji-isolation-chocolate.trycloudflare.com/v1/chat/completions',
     model: 'gpt-4o-mini',
     apiKey: '', // set at runtime via the menu; persisted to localStorage by main.js
     temperature: 0.6,
