@@ -215,11 +215,13 @@ const KEEP_TWO_LETTER = new Set([
 ]);
 
 function spellToken(letters) {
+  // Join letter-sounds with commas so the speech engine puts a clear beat between them
+  // (otherwise "you ess" blends into "usss", and "ay eye" slurs into one syllable).
   return String(letters)
     .toUpperCase()
     .split('')
     .map((c) => PHONETIC[c] || c)
-    .join(' ');
+    .join(', ');
 }
 
 /** Replace uppercase initialisms with their spoken letter sounds (US -> "you ess"). */

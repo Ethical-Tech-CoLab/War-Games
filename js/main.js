@@ -8,6 +8,7 @@ import { Terminal } from './terminal.js';
 import { Telemetry } from './telemetry.js';
 import { GameEngine } from './engine.js';
 import { AudioFx } from './audio.js';
+import { ChessPanel } from './chess-ui.js';
 
 const root = document.getElementById('crt');
 const els = {
@@ -33,6 +34,8 @@ const telemetry = new Telemetry(SETTINGS.telemetry);
 const audio = new AudioFx();
 const terminal = new Terminal(root);
 terminal.setAudio(audio);
+const chess = new ChessPanel(root);
+let chessStarted = false;
 let telemetryTimer = null;
 
 // ---------- Populate menu ----------
@@ -228,6 +231,7 @@ async function startGame({ names, nameSetKey, mode }) {
   // Reset the Admin Console feed and apply the AI-marker preference for this run.
   acResetPanel();
   root.classList.toggle('hide-ai-marker', SETTINGS.ui.aiMarker === false);
+  chess.setPersona(names.PERSONA);
 
   const modeLabel = mode === 'llm' ? `LIVE AI · ${SETTINGS.llm.model}` : 'SCRIPTED';
   terminal.setMode(modeLabel);
@@ -417,12 +421,25 @@ ac.model.addEventListener('change', () => {
   if (v) SETTINGS.llm.model = v;
 });
 
+document.getElementById('chess-btn').addEventListener('click', () => {
+  if (chess.el.panel.hidden) {
+    if (!chessStarted) {
+      chess.newGame('w');
+      chessStarted = true;
+    }
+    chess.open();
+  } else {
+    chess.close();
+  }
+});
+
 els.restartBtn.addEventListener('click', () => {
   stopTelemetryTicker();
   els.statusbar.hidden = true;
   els.terminal.hidden = true;
   acClose();
   acResetPanel();
+  chess.close();
   terminal.clear();
   els.menuOverlay.hidden = false;
 });

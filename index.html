@@ -24,6 +24,7 @@
         <div class="status-right">
           <span class="mode-badge" id="mode-badge"></span>
           <button class="ghost-btn" id="sound-btn" type="button">SOUND: ON</button>
+          <button class="ghost-btn" id="chess-btn" type="button">♟ CHESS</button>
           <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
         </div>
@@ -160,6 +161,26 @@
             </div>
           </section>
         </div>
+      </aside>
+
+      <!-- Optional chess panel: play the built-in engine (local, no network). Click squares
+           or type coordinate moves like e2e4. The board repaints on every move. -->
+      <aside class="chess-panel" id="chess-panel" aria-label="Chess" hidden>
+        <div class="cp-head">
+          <span class="cp-title" id="cp-title">CHESS</span>
+          <div class="cp-actions">
+            <button class="ghost-btn" id="cp-new" type="button">NEW</button>
+            <button class="ghost-btn" id="cp-flip" type="button">PLAY BLACK</button>
+            <button class="ghost-btn" id="cp-close" type="button">CLOSE</button>
+          </div>
+        </div>
+        <div class="cp-status" id="cp-status">Your move (White).</div>
+        <div class="cp-board" id="cp-board"></div>
+        <div class="cp-input-row">
+          <input id="cp-move" class="cp-move" type="text" autocomplete="off" spellcheck="false" placeholder="type a move, e.g. e2e4" />
+          <button class="ghost-btn" id="cp-play" type="button">MOVE</button>
+        </div>
+        <div class="cp-log" id="cp-log" aria-label="move log"></div>
       </aside>
       </div>
       <!-- Monitor chin: fake brand plate + power LED for that 1983 feel -->
