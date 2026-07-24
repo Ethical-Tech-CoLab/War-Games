@@ -347,6 +347,83 @@ export const GLYPH = {
   k: '\u265A', q: '\u265B', r: '\u265C', b: '\u265D', n: '\u265E', p: '\u265F',
 };
 
+/** Material balance in centipawns: positive = White ahead, negative = Black ahead. */
+export function material(state) {
+  let w = 0, b = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = state.board[r][c];
+      if (p === '.') continue;
+      const v = VALUES[p.toLowerCase()];
+      if (isWhite(p)) w += v; else b += v;
+    }
+  }
+  return w - b;
+}
+
+// Spoken-move vocabulary (lenient, for browser speech recognition transcripts).
+const WORD_NUM = { one: '1', two: '2', to: '2', too: '2', three: '3', four: '4', for: '4', fore: '4', five: '5', six: '6', seven: '7', eight: '8', ate: '8' };
+const WORD_FILE = {
+  alpha: 'a', bravo: 'b', charlie: 'c', delta: 'd', echo: 'e', foxtrot: 'f', golf: 'g', hotel: 'h',
+  ay: 'a', bee: 'b', sea: 'c', see: 'c', dee: 'd', ee: 'e', eff: 'f', gee: 'g', aitch: 'h', haitch: 'h',
+};
+const WORD_PIECE = { pawn: 'p', knight: 'n', night: 'n', bishop: 'b', rook: 'r', rock: 'r', queen: 'q', king: 'k' };
+
+/**
+ * Parse a spoken move transcript into a legal move (or null). Lenient by design — accepts
+ * "e2 e4", "e two e four", "knight f3", "bishop to c4", "castle kingside", "queen h5", etc.
+ */
+export function parseSpokenMove(state, text) {
+  const t = String(text).toLowerCase();
+  // Castling by spoken intent.
+  if (/castl/.test(t)) {
+    const rank = state.turn === WHITE ? 1 : 8;
+    if (/(queen|long)/.test(t)) return parseMove(state, `e${rank}c${rank}`);
+    if (/(king|short)/.test(t)) return parseMove(state, `e${rank}g${rank}`);
+  }
+  const toks = t.replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  let pieceType = null;
+  let promo = null;
+  const chars = [];
+  for (const tok of toks) {
+    if (WORD_PIECE[tok]) { if (!pieceType) pieceType = WORD_PIECE[tok]; continue; }
+    if (/^[a-h][1-8]$/.test(tok)) { chars.push(tok[0], tok[1]); continue; }
+    if (WORD_NUM[tok]) { chars.push(WORD_NUM[tok]); continue; }
+    if (WORD_FILE[tok]) { chars.push(WORD_FILE[tok]); continue; }
+    if (/^[a-h]$/.test(tok)) { chars.push(tok); continue; }
+    if (/^[1-8]$/.test(tok)) { chars.push(tok); continue; }
+    if (/^(queen|rook|bishop|knight)$/.test(tok)) promo = tok[0] === 'k' ? 'n' : tok[0];
+  }
+  // Pair each file letter with the next rank digit to form squares.
+  const squares = [];
+  for (let i = 0; i < chars.length; i++) {
+    if (/[a-h]/.test(chars[i])) {
+      for (let j = i + 1; j < chars.length; j++) {
+        if (/[1-8]/.test(chars[j])) { squares.push(chars[i] + chars[j]); i = j; break; }
+        if (/[a-h]/.test(chars[j])) break;
+      }
+    }
+  }
+  const legal = legalMoves(state);
+  if (squares.length >= 2) {
+    return parseMove(state, squares[0] + squares[1] + (promo || ''));
+  }
+  if (squares.length === 1) {
+    const [tr, tc] = [8 - Number(squares[0][1]), FILES.indexOf(squares[0][0])];
+    const matches = legal.filter((m) => m.to[0] === tr && m.to[1] === tc);
+    if (matches.length === 0) return null;
+    if (pieceType) {
+      const byPiece = matches.filter((m) => state.board[m.from[0]][m.from[1]].toLowerCase() === pieceType);
+      return byPiece[0] || null;
+    }
+    if (matches.length === 1) return matches[0];
+    // Prefer a pawn move when ambiguous and no piece named.
+    return matches.find((m) => state.board[m.from[0]][m.from[1]].toLowerCase() === 'p') || null;
+  }
+  return null;
+}
+
+
 // ---------- Test helper ----------
 export function perft(state, depth) {
   if (depth === 0) return 1;

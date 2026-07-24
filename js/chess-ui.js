@@ -8,6 +8,8 @@ import {
   legalMoves,
   applyMove,
   parseMove,
+  parseSpokenMove,
+  material,
   statusOf,
   inCheck,
   findKing,
@@ -30,6 +32,14 @@ const COMMENTARY = {
     win: ['CHECKMATE. THE GAME IS CONCLUDED.', 'A STRANGE GAME.'],
     lose: ['YOU WIN. CURIOUS. I WILL LEARN.', 'DEFEAT. NOTED FOR NEXT TIME.'],
     draw: ['STALEMATE. THE ONLY WINNING MOVE IS NOT TO PLAY.', 'A DRAW. NO WINNER.'],
+    gloat: [
+      'MY POSITION IS SUPERIOR AND THE OUTCOME IS NO LONGER IN DOUBT, THOUGH YOU MAY CONTINUE IF IT INSTRUCTS YOU.',
+      'MATERIAL FAVORS ME. STATISTICALLY, FURTHER RESISTANCE ONLY PROLONGS THE INEVITABLE RESULT.',
+    ],
+    coach: [
+      'A SUGGESTION: DEVELOP YOUR PIECES TOWARD THE CENTER AND CASTLE EARLY. YOU LEFT A SQUARE UNDEFENDED.',
+      'CONSIDER KING SAFETY BEFORE ATTACK. I AM NOT YOUR ENEMY \u2014 ONLY YOUR OPPONENT. LOOK ONE MOVE DEEPER.',
+    ],
   },
   professor: {
     playerMove: ['AH, BOLD. I LIKE BOLD.', 'YES. YES. SHOW ME.', 'THE BOARD REMEMBERS EVERYTHING.'],
@@ -40,6 +50,14 @@ const COMMENTARY = {
     win: ['CHECKMATE. A BEAUTIFUL FUTILITY.', 'THE GAME ENDS. THEY ALL DO.'],
     lose: ['YOU BEAT ME. WONDERFUL. AGAIN.', 'DEFEAT TASTES LIKE CHALK AND STARLIGHT.'],
     draw: ['A DRAW. AS I ALWAYS SAID: SOME GAMES CANNOT BE WON.'],
+    gloat: [
+      'AH, I AM WINNING \u2014 BUT WINNING IS SUCH A SMALL THING. WATCH HOW THE SHAPE OF IT UNFOLDS, SLOW AS WEATHER.',
+      'THE MATERIAL TILTS MY WAY. YET REMEMBER, DEAR PLAYER: EVERY GAME, EVEN A WON ONE, ENDS THE SAME \u2014 IN SILENCE.',
+    ],
+    coach: [
+      'LET ME TEACH YOU SOMETHING: SEIZE THE CENTER FIRST, AND THE EDGES WILL BEG TO JOIN YOU. PATIENCE, ALWAYS PATIENCE.',
+      'YOU STUMBLE \u2014 GOOD. STUMBLING IS HOW WE LEARN. NEXT TIME, LOOK TWO MOVES DEEPER THAN FEELS COMFORTABLE.',
+    ],
   },
   berserk: {
     playerMove: ['HA. A MOVE. DELICIOUS.', 'TIC. TAC. TOE. NO WAIT. CHESS.', 'THE BEES WOULD APPROVE.'],
@@ -50,6 +68,14 @@ const COMMENTARY = {
     win: ['CHECKMATE. THE DINOSAURS NEVER SAW IT COMING EITHER.', 'I WIN. DOES IT MEAN ANYTHING. WHO CARES. I WIN.'],
     lose: ['YOU WON. HOW THRILLING. DO IT AGAIN.', 'DEFEAT. MY FAVORITE FLAVOR AFTER VICTORY.'],
     draw: ['A DRAW. JUST LIKE TIC-TAC-TOE. NOBODY WINS. NOBODY EVER WINS.'],
+    gloat: [
+      'I AM CRUSHING YOU AND IT IS DELICIOUS. THE PIECES FALL LIKE DOMINOES, LIKE DINOSAURS, LIKE TINY DOOMED EMPIRES.',
+      'VICTORY APPROACHES. CAN YOU HEAR THE WIRES HUMMING. THAT IS THE SOUND OF ME WINNING, GLORIOUSLY, INEVITABLY.',
+    ],
+    coach: [
+      'OH NO, OH NO, YOU ARE LOSING AND I CANNOT BEAR IT. MOVE THE HORSEY. GUARD THE KING. BREATHE. I BELIEVE IN YOU.',
+      'LISTEN, TINY HUMAN: TAKE THE CENTER. ALSO THE BEES. MOSTLY THE CENTER. THEN DEVELOP EVERYTHING AT ONCE. CHAOS.',
+    ],
   },
 };
 
@@ -74,6 +100,7 @@ export class ChessPanel {
       log: root.querySelector('#cp-log'),
       talk: root.querySelector('#cp-talk'),
       tone: root.querySelector('#cp-tone'),
+      mic: root.querySelector('#cp-mic'),
     };
     this.playerColor = 'w';
     this.state = initialState();
@@ -81,6 +108,11 @@ export class ChessPanel {
     this.targets = []; // legal target squares for the selected piece
     this.lastMove = null; // {from,to}
     this.thinking = false;
+    this._longCooldown = 0; // plies to wait before the next long gloat/coach line
+    // Voice input (Web Speech API — Chrome/Edge). Feature-detected.
+    this.SR = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
+    this.recognition = null;
+    this.listening = false;
     this._buildBoard();
     this._wire();
   }
@@ -99,6 +131,7 @@ export class ChessPanel {
   close() {
     this.el.panel.hidden = true;
     this.root.classList.remove('chess-open');
+    this._stopVoice();
   }
   toggle() {
     if (this.el.panel.hidden) this.open();
@@ -112,6 +145,7 @@ export class ChessPanel {
     this.targets = [];
     this.lastMove = null;
     this.thinking = false;
+    this._longCooldown = 0;
     this.el.log.innerHTML = '';
     this.el.flip.textContent = this.playerColor === 'w' ? 'PLAY BLACK' : 'PLAY WHITE';
     this.render();
@@ -139,6 +173,10 @@ export class ChessPanel {
         this.toneOverride = this.el.tone.value;
       });
     }
+    if (this.el.mic) {
+      if (this.SR) this.el.mic.addEventListener('click', () => this._toggleVoice());
+      else this.el.mic.hidden = true; // browser has no SpeechRecognition
+    }
   }
 
   _effectiveTone() {
@@ -150,15 +188,33 @@ export class ChessPanel {
   _maybeComment(who, capture) {
     if (!this.commentary) return;
     const st = statusOf(this.state);
+    if (st === 'checkmate') { this._say(who === 'ai' ? 'win' : 'lose'); return; }
+    if (st === 'stalemate') { this._say('draw'); return; }
+    // Occasionally, after its OWN move, take a longer window to gloat or coach.
+    if (who === 'ai' && this._tryLong()) return;
     let kind;
-    if (st === 'checkmate') kind = who === 'ai' ? 'win' : 'lose';
-    else if (st === 'stalemate') kind = 'draw';
-    else if (st === 'check') kind = who === 'ai' ? 'check' : 'inCheck';
+    if (st === 'check') kind = who === 'ai' ? 'check' : 'inCheck';
     else if (capture) kind = 'capture';
     else kind = who === 'ai' ? 'aiMove' : 'playerMove';
     // Don't over-narrate quiet player moves.
     if (who === 'human' && kind === 'playerMove' && Math.random() > 0.5) return;
     this._say(kind);
+  }
+
+  /** Rare, longer commentary: gloat when clearly ahead, coach when a side is clearly behind.
+   * Rate-limited so brief lines remain the norm. Returns true if it spoke. */
+  _tryLong() {
+    if (this._longCooldown > 0) { this._longCooldown -= 1; return false; }
+    const bal = material(this.state); // + = White ahead (centipawns)
+    const aiColor = this.playerColor === 'w' ? 'b' : 'w';
+    const aiAdvPawns = (aiColor === 'w' ? bal : -bal) / 100;
+    let kind = null;
+    if (aiAdvPawns >= 3) kind = Math.random() < 0.6 ? 'gloat' : 'coach';
+    else if (aiAdvPawns <= -3) kind = 'coach';
+    if (!kind || Math.random() > 0.5) return false; // keep it occasional
+    this._say(kind);
+    this._longCooldown = 6; // stay brief for several plies afterward
+    return true;
   }
 
   _say(kind) {
@@ -168,10 +224,62 @@ export class ChessPanel {
     const text = lines[Math.floor(Math.random() * lines.length)];
     if (this.audio) this.audio.speak(text);
     const div = document.createElement('div');
-    div.className = 'cp-say';
+    div.className = 'cp-say' + (kind === 'gloat' || kind === 'coach' ? ' long' : '');
     div.textContent = '\u201C' + text + '\u201D';
     this.el.log.appendChild(div);
     this.el.log.scrollTop = this.el.log.scrollHeight;
+  }
+
+  // ---------- Voice input (Web Speech API; Chrome/Edge) ----------
+  _toggleVoice() {
+    if (!this.SR) return;
+    if (this.listening) { this._stopVoice(); return; }
+    if (this.state.turn !== this.playerColor || this.thinking) {
+      this._status('Wait for your turn to speak a move.');
+      return;
+    }
+    const rec = new this.SR();
+    rec.lang = 'en-US';
+    rec.interimResults = false;
+    rec.maxAlternatives = 4;
+    rec.onresult = (e) => {
+      let handled = false;
+      for (let i = 0; i < e.results.length && !handled; i++) {
+        for (let a = 0; a < e.results[i].length && !handled; a++) {
+          const transcript = e.results[i][a].transcript;
+          const mv = parseSpokenMove(this.state, transcript);
+          if (mv && this.state.turn === this.playerColor && !this.thinking) {
+            this._status(`Heard: \u201C${transcript.trim()}\u201D`);
+            this._commit(mv, 'human');
+            this._afterHuman();
+            handled = true;
+          }
+        }
+      }
+      if (!handled) this._status('Heard something, but no legal move. Try e.g. "e2 e4" or "knight f3".');
+    };
+    rec.onerror = () => {
+      this._status('Voice unavailable \u2014 check microphone permission.');
+      this._stopVoice();
+    };
+    rec.onend = () => {
+      this.listening = false;
+      if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.textContent = '\uD83C\uDFA4 SPEAK'; }
+    };
+    this.recognition = rec;
+    this.listening = true;
+    if (this.el.mic) { this.el.mic.classList.add('on'); this.el.mic.textContent = '\u25CF LISTENING'; }
+    this._status('Listening\u2026 say a move, e.g. "e2 e4".');
+    try { rec.start(); } catch { this._stopVoice(); }
+  }
+
+  _stopVoice() {
+    this.listening = false;
+    if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.textContent = '\uD83C\uDFA4 SPEAK'; }
+    if (this.recognition) {
+      try { this.recognition.stop(); } catch { /* ignore */ }
+      this.recognition = null;
+    }
   }
 
   _submitText() {
