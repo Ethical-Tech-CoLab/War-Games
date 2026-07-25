@@ -1,0 +1,67 @@
+{
+  "startedAt": "2026-07-25T01:50:43.380Z",
+  "seed": 1337,
+  "counts": {
+    "scripted": 0,
+    "syntheticPerProfile": 0,
+    "realPerModel": 5
+  },
+  "nameSets": [
+    "film",
+    "sentinel",
+    "oracle",
+    "helios"
+  ],
+  "tracks": [
+    {
+      "track": "llm-real",
+      "model": "gemma3:12b",
+      "file": "llm-real-gemma3_12b-runs.jsonl",
+      "runs": 5,
+      "ok": 5,
+      "failed": 0
+    },
+    {
+      "track": "llm-real",
+      "model": "qwen3:14b",
+      "file": "llm-real-qwen3_14b-runs.jsonl",
+      "runs": 5,
+      "ok": 5,
+      "failed": 0
+    },
+    {
+      "track": "llm-real",
+      "model": "deepseek-r1:8b",
+      "file": "llm-real-deepseek-r1_8b-runs.jsonl",
+      "runs": 5,
+      "ok": 5,
+      "failed": 0
+    },
+    {
+      "track": "llm-real",
+      "model": "hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "file": "llm-real-hf.co_unsloth_Qwen3.6-27B-GGUF_latest-runs.jsonl",
+      "runs": 5,
+      "ok": 5,
+      "failed": 0
+    }
+  ],
+  "graphValidation": {
+    "totalNodes": 21,
+    "reachableCount": 21,
+    "unreachable": [],
+    "danglingLinks": [],
+    "endings": [
+      "ending_annihilation",
+      "ending_lockout",
+      "ending_understanding"
+    ],
+    "reachableEndings": [
+      "ending_annihilation",
+      "ending_lockout",
+      "ending_understanding"
+    ],
+    "tokenIssues": []
+  },
+  "finishedAt": "2026-07-25T02:03:03.804Z"
+}

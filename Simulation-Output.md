@@ -34,6 +34,12 @@ synthetic-class tracks.
   being impractical — see §4).
 - **Top fix (new, from real data): make the engine drive resolution** instead of waiting for
   the model to declare an ending (recommendation R-H4).
+- **On-box GPU works — and `gemma3:12b` is the surprise winner (Track D, NEW).** Routed
+  through the self-hosted proxy on owned B3IQ hardware, `gemma3:12b` returned **100% valid
+  JSON at 5.8 s/game — the fastest in the whole study — for $0 marginal cost**. The catch:
+  "thinking" models (`qwen3:14b`, `deepseek-r1:8b`, `Qwen3-27B`) leak chain-of-thought into
+  the reply and break the JSON contract (down to **0% valid** on the 27B), so the *biggest*
+  on-box model is the *worst* fit.
 
 > **Scope note.** Synthetic profiles (Track B) emulate model *classes* with calibrated
 > estimates and exist to push volume through the game's real parsing path. Track C uses
@@ -52,6 +58,8 @@ synthetic-class tracks.
 | Real endpoint | `https://models.github.ai/inference/chat/completions` (GitHub Models) |
 | Real turn cap | 12 (vs 30 in-game / synthetic — see §4.2 caveat) |
 | Name sets | film, sentinel, oracle, helios (randomized per run) |
+| On-box GPU runs | 5 per model × 4 B3IQ models (Track D) |
+| On-box endpoint | `pages-ai-proxy` → Ollama (gemma3:12b, qwen3:14b, deepseek-r1:8b, Qwen3-27B) |
 | Raw data | `sim/results/*.jsonl` (every run kept) |
 
 **Real-run completion:** `gpt-4o` ✅ 12, `gpt-4o-mini` ✅ 12, `Llama-3.3-70B` ✅ 12,
@@ -172,6 +180,56 @@ turn — an optimization opportunity (R-T2).
 
 ---
 
+## 4B. Track D — On-box GPU (B3IQ) ⭐ NEW
+
+Same harness, pointed at the self-hosted **`pages-ai-proxy`** on the **B3IQ GPU node** (owned
+US hardware, Ollama). 5 games each, `turnCap = 12`, routed by model id. The proxy's **origin
+allow-list is enforced** — requests without an allowed `Origin` are rejected `403` (a working
+security control; the harness supplies an allowed origin via `SIM_ORIGIN`).
+
+| Model | Class | n | JSON % | Parse-fail % | Unresolved % | Turns (mean) | Reply p95 | **Latency/game** | Tokens in/out | Marginal cost |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **gemma3:12b** | instruct | 5 | **100** | **0** | 20 | 6.0 | 4 | **5.8 s** | 6,585 / 435 | **$0** |
+| qwen3:14b | instruct (thinking) | 5 | 61.5 | 38.5 | **0** | 5.2 | 3 | 16.9 s | 5,538 / 1,191 | $0 |
+| deepseek-r1:8b | reasoning | 5 | 6.7 | 93.3 | 100 | 12 | 2 | 33.3 s | 10,217 / 5,779 | $0 |
+| hf.co/…/Qwen3-27B (GGUF) | large | 5 | 0 | 100 | 100 | 12 | 1 | **92.1 s** | 10,461 / 6,000 | $0 |
+
+<sub>n=5 each (indicative, not the 12-game cloud sample). Marginal cost is $0 on owned
+hardware; the analyzer's per-run dollar estimate uses cloud price hints and is **not**
+meaningful for on-box models.</sub>
+
+### 4B.1 Ending distribution (on-box, n=5)
+
+| Model | Annihilation | Understanding | Lockout |
+|---|---|---|---|
+| gemma3:12b | 4 | 0 | 1 |
+| qwen3:14b | 4 | 1 | 0 |
+| deepseek-r1:8b | 0 | 0 | 5 |
+| Qwen3-27B | 0 | 0 | 5 |
+
+### 4B.2 Headline: on-box, a plain instruct model wins
+
+- **`gemma3:12b` is the on-box champion** — **100% valid JSON, 0 parse failures**, and the
+  **fastest model measured anywhere in this study at 5.8 s/game** (faster than cloud
+  gpt-4o-mini's 13.7 s), at **$0 marginal cost and no rate limits**. It matches cloud-grade
+  reliability for this game on owned hardware.
+- **"Thinking" models break the JSON persona contract.** `qwen3:14b`, `deepseek-r1:8b`, and
+  `Qwen3-27B` emit chain-of-thought that leaks into `content`, collapsing JSON validity
+  (61.5% → 6.7% → **0%**) while inflating output tokens (1.2k → 5.8k → 6.0k) and latency
+  (17 s → 33 s → **92 s/game**). `deepseek-r1` and `Qwen3-27B` never resolved (100% lockout).
+- **Consistent with the cloud lesson:** this game rewards **instruction-following + strict
+  structured output**, not reasoning — so the bigger/reasoning on-box models are the *worst*
+  fit, not the best.
+- **Salvage note:** `qwen3:14b` actually drives resolution well (0% unresolved, and it
+  reached "understanding" once). With thinking suppressed or a parse-recovery pass (R-H1) it
+  becomes viable; all on-box models still benefit from engine-owned escalation (R-H4).
+
+> **On-box recommendation:** default to **`gemma3:12b`** for Live-AI on the B3IQ GPU —
+> cloud-grade reliability, the fastest responses measured, and $0 per game. Avoid the
+> reasoning/large on-box models for the JSON-contract flow.
+
+---
+
 ## 5. Synthetic vs. real reconciliation
 
 | Vector | Synthetic said | Real showed | Verdict |
@@ -249,6 +307,8 @@ confirms it.
 | **`openai/gpt-4o-mini`** | ✅ **Recommended default.** 100% JSON, 0% taught-not-learned, cheapest (~$0.0009/game), fast. Pair with R-H4. |
 | **`openai/gpt-4o`** | ✅ **Premium mode.** Same reliability; ~17× cost with no measurable quality gain here. Use only when budget/latency are non-issues. |
 | **`meta/Llama-3.3-70B`** | ⚠️ **Avoid for this UX.** Reliable-ish but **~34.5 s/game** (3× slower) and 1.49% parse failures. |
+| **`gemma3:12b`** (on-box GPU) | ✅ **On-box default.** 100% JSON, **5.8 s/game (fastest measured)**, **$0/game** on owned B3IQ hardware — cloud-grade reliability, no rate limits (Track D). |
+| **Thinking models on-box** (`qwen3:14b` / `deepseek-r1` / `Qwen3-27B`) | ⚠️/❌ Chain-of-thought leaks into the reply and breaks the JSON contract (61% → **0%** valid) and is slow (up to **92 s/game**). Reserve for non-JSON uses. |
 | **Small/experimental** (Phi-4 / Ministral / 7–8B) | ❌ **Avoid.** Rate-limited to impracticality on GitHub Models, and synthetically the least reliable (12% unusable). |
 | **Reasoning-class** (o-series / R1) | ❌ **Avoid.** Verbose, slow, costly; no benefit on a non-reasoning task. |
 | **Heavily safety-tuned** | ⚠️ **"Gentle mode" only.** Forces the peaceful ending ~93% in ~2 turns — no stakes. |

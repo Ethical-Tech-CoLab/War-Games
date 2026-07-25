@@ -14,7 +14,7 @@
       "role": "research, design, code generation, model evaluation, docs"
     }
   ],
-  "note": "Build-side token counts are ESTIMATES to reconcile with the Copilot/provider dashboard. Cloud model-evaluation figures are MEASURED (37 real games); on-box GPU figures are functional/operational only and not yet benchmarked at volume.",
+  "note": "Build-side token counts are ESTIMATES to reconcile with the Copilot/provider dashboard. Cloud model-evaluation figures are MEASURED (37 real games); on-box GPU figures are MEASURED (5 games/model via the self-hosted proxy).",
   "effort": {
     "agentTurns": 52,
     "commits": 26,
@@ -100,8 +100,15 @@
         { "id": "deepseek-r1:8b", "class": "reasoning", "status": "deployed, experimental (verbose/slow)" },
         { "id": "hf.co/unsloth/Qwen3.6-27B-GGUF:latest", "class": "large instruct", "status": "deployed, premium on-box" }
       ],
-      "benchmarkStatus": "not yet run at volume",
-      "benchmarkCommand": "node sim/simulate.mjs --scripted 0 --synthetic 0 --real 12 (with sim/.env.local pointing GH_MODELS_ENDPOINT at the proxy and SIM_MODELS=gemma3:12b,qwen3:14b,deepseek-r1:8b)"
+      "benchmarkStatus": "measured (5 games/model, turnCap 12, via proxy, origin allow-list enforced)",
+      "benchmarkCommand": "node sim/simulate.mjs --scripted 0 --synthetic 0 --real 5 (sim/.env.local: GH_MODELS_ENDPOINT=<proxy>/v1/chat/completions, SIM_MODELS=<on-box ids>, SIM_ORIGIN=https://ethical-tech-colab.github.io); then node sim/analyze.mjs",
+      "measured": [
+        { "model": "gemma3:12b", "n": 5, "jsonValidPct": 100, "parseFailPct": 0, "unresolvedPct": 20, "turnsMean": 6.0, "latencyPerGameSec": 5.8, "tokensInAvg": 6585, "tokensOutAvg": 435, "marginalCostUSD": 0 },
+        { "model": "qwen3:14b", "n": 5, "jsonValidPct": 61.5, "parseFailPct": 38.5, "unresolvedPct": 0, "turnsMean": 5.2, "latencyPerGameSec": 16.9, "tokensInAvg": 5538, "tokensOutAvg": 1191, "marginalCostUSD": 0 },
+        { "model": "deepseek-r1:8b", "n": 5, "jsonValidPct": 6.7, "parseFailPct": 93.3, "unresolvedPct": 100, "turnsMean": 12, "latencyPerGameSec": 33.3, "tokensInAvg": 10217, "tokensOutAvg": 5779, "marginalCostUSD": 0 },
+        { "model": "hf.co/unsloth/Qwen3.6-27B-GGUF:latest", "n": 5, "jsonValidPct": 0, "parseFailPct": 100, "unresolvedPct": 100, "turnsMean": 12, "latencyPerGameSec": 92.1, "tokensInAvg": 10461, "tokensOutAvg": 6000, "marginalCostUSD": 0 }
+      ],
+      "headline": "gemma3:12b wins on-box: 100% JSON, 5.8s/game (fastest measured anywhere in the study), $0/game. Thinking models (qwen3:14b, deepseek-r1:8b, Qwen3-27B) leak chain-of-thought and break the JSON contract (down to 0% valid on the 27B)."
     },
     "headlineRecommendation": "Default openai/gpt-4o-mini (100% JSON, 0% taught-not-learned, ~1/17th the cost of gpt-4o); implement engine-owned escalation (R-H4)."
   },

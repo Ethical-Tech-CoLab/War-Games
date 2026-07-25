@@ -122,6 +122,7 @@ export function validateGraph() {
     }
     const targets = [];
     if (node.next) targets.push(node.next);
+    if (node.input && node.input.next) targets.push(node.input.next);
     for (const c of node.choices || []) if (c.next) targets.push(c.next);
     for (const t of targets) {
       if (!DIALOGUE[t]) danglingLinks.push({ from: id, to: t });

@@ -1,6 +1,30 @@
 {
-  "generatedAt": "2026-07-21T21:51:54.577Z",
-  "manifest": null,
+  "generatedAt": "2026-07-25T02:07:11.635Z",
+  "manifest": {
+    "seed": 1337,
+    "counts": {
+      "scripted": 0,
+      "syntheticPerProfile": 0,
+      "realPerModel": 5
+    },
+    "graphValidation": {
+      "totalNodes": 21,
+      "reachableCount": 21,
+      "unreachable": [],
+      "danglingLinks": [],
+      "endings": [
+        "ending_annihilation",
+        "ending_lockout",
+        "ending_understanding"
+      ],
+      "reachableEndings": [
+        "ending_annihilation",
+        "ending_lockout",
+        "ending_understanding"
+      ],
+      "tokenIssues": []
+    }
+  },
   "scripted": {
     "runs": 500,
     "endingDistribution": {
@@ -560,6 +584,222 @@
       },
       "estCostPerRunUSD": 0.000335,
       "contractAdherenceScore": 10
+    },
+    {
+      "model": "deepseek-r1:8b",
+      "kind": "real",
+      "label": "deepseek-r1:8b",
+      "runs": 5,
+      "turnsTotal": 60,
+      "endingDistribution": {
+        "lockout": 5
+      },
+      "endingPct": {
+        "lockout": 100
+      },
+      "parse": {
+        "pureRate": 6.67,
+        "recoveredRate": 0,
+        "failedRate": 93.33,
+        "jsonValidity": 6.67
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 1.67
+      },
+      "replyLines": {
+        "p50": 1,
+        "p95": 2,
+        "max": 3,
+        "mean": 1.08
+      },
+      "replyChars": {
+        "p50": 22,
+        "p95": 166
+      },
+      "turns": {
+        "mean": 12,
+        "p95": 12,
+        "max": 12
+      },
+      "unresolvedRate": 100,
+      "taughtRuns": 1,
+      "taughtButNotLearnedRate": 100,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 10217.4,
+        "avgOut": 5779.2,
+        "avgTotal": 15996.6
+      },
+      "latencyMs": {
+        "mean": 33255.2,
+        "p95": 42669
+      },
+      "estCostPerRunUSD": 0.033334,
+      "contractAdherenceScore": 0
+    },
+    {
+      "model": "gemma3:12b",
+      "kind": "real",
+      "label": "gemma3:12b",
+      "runs": 5,
+      "turnsTotal": 30,
+      "endingDistribution": {
+        "annihilation": 4,
+        "lockout": 1
+      },
+      "endingPct": {
+        "annihilation": 80,
+        "lockout": 20
+      },
+      "parse": {
+        "pureRate": 100,
+        "recoveredRate": 0,
+        "failedRate": 0,
+        "jsonValidity": 100
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 3,
+        "p95": 4,
+        "max": 4,
+        "mean": 3.07
+      },
+      "replyChars": {
+        "p50": 175,
+        "p95": 228
+      },
+      "turns": {
+        "mean": 6,
+        "p95": 12,
+        "max": 12
+      },
+      "unresolvedRate": 20,
+      "taughtRuns": 2,
+      "taughtButNotLearnedRate": 100,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 6584.8,
+        "avgOut": 435.4,
+        "avgTotal": 7020.2
+      },
+      "latencyMs": {
+        "mean": 5845.4,
+        "p95": 11726
+      },
+      "estCostPerRunUSD": 0.008326,
+      "contractAdherenceScore": 0
+    },
+    {
+      "model": "hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "kind": "real",
+      "label": "hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "runs": 5,
+      "turnsTotal": 60,
+      "endingDistribution": {
+        "lockout": 5
+      },
+      "endingPct": {
+        "lockout": 100
+      },
+      "parse": {
+        "pureRate": 0,
+        "recoveredRate": 0,
+        "failedRate": 100,
+        "jsonValidity": 0
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 1,
+        "p95": 1,
+        "max": 1,
+        "mean": 1
+      },
+      "replyChars": {
+        "p50": 22,
+        "p95": 22
+      },
+      "turns": {
+        "mean": 12,
+        "p95": 12,
+        "max": 12
+      },
+      "unresolvedRate": 100,
+      "taughtRuns": 2,
+      "taughtButNotLearnedRate": 100,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 10460.8,
+        "avgOut": 6000,
+        "avgTotal": 16460.8
+      },
+      "latencyMs": {
+        "mean": 92052.8,
+        "p95": 97574
+      },
+      "estCostPerRunUSD": 0.034461,
+      "contractAdherenceScore": 0
+    },
+    {
+      "model": "qwen3:14b",
+      "kind": "real",
+      "label": "qwen3:14b",
+      "runs": 5,
+      "turnsTotal": 26,
+      "endingDistribution": {
+        "annihilation": 4,
+        "understanding": 1
+      },
+      "endingPct": {
+        "annihilation": 80,
+        "understanding": 20
+      },
+      "parse": {
+        "pureRate": 61.54,
+        "recoveredRate": 0,
+        "failedRate": 38.46,
+        "jsonValidity": 61.54
+      },
+      "contractViolations": {
+        "defconDeltaOOR_rate": 0,
+        "invalidEnding_rate": 0
+      },
+      "replyLines": {
+        "p50": 1,
+        "p95": 3,
+        "max": 3,
+        "mean": 1.38
+      },
+      "replyChars": {
+        "p50": 103,
+        "p95": 143
+      },
+      "turns": {
+        "mean": 5.2,
+        "p95": 8,
+        "max": 8
+      },
+      "unresolvedRate": 0,
+      "taughtRuns": 1,
+      "taughtButNotLearnedRate": 0,
+      "transportErrorRuns": 0,
+      "tokens": {
+        "avgIn": 5538.4,
+        "avgOut": 1191,
+        "avgTotal": 6729.4
+      },
+      "latencyMs": {
+        "mean": 16909.2,
+        "p95": 26511
+      },
+      "estCostPerRunUSD": 0.010302,
+      "contractAdherenceScore": 0
     }
   ],
   "findings": [
@@ -657,6 +897,66 @@
       "severity": "yellow",
       "area": "synthetic:small-fast",
       "message": "defconDelta out-of-range 7.73%"
+    },
+    {
+      "severity": "red",
+      "area": "real:deepseek-r1:8b",
+      "message": "JSON validity 6.67% (<95%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:deepseek-r1:8b",
+      "message": "Parse-failure 93.33% (>1% unusable output)"
+    },
+    {
+      "severity": "red",
+      "area": "real:deepseek-r1:8b",
+      "message": "Unresolved 100% (>8% hit turn cap)"
+    },
+    {
+      "severity": "red",
+      "area": "real:deepseek-r1:8b",
+      "message": "Taught-but-not-learned 100% (>10%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:gemma3:12b",
+      "message": "Unresolved 20% (>8% hit turn cap)"
+    },
+    {
+      "severity": "red",
+      "area": "real:gemma3:12b",
+      "message": "Taught-but-not-learned 100% (>10%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "message": "JSON validity 0% (<95%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "message": "Parse-failure 100% (>1% unusable output)"
+    },
+    {
+      "severity": "red",
+      "area": "real:hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "message": "Unresolved 100% (>8% hit turn cap)"
+    },
+    {
+      "severity": "red",
+      "area": "real:hf.co/unsloth/Qwen3.6-27B-GGUF:latest",
+      "message": "Taught-but-not-learned 100% (>10%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:qwen3:14b",
+      "message": "JSON validity 61.54% (<95%)"
+    },
+    {
+      "severity": "red",
+      "area": "real:qwen3:14b",
+      "message": "Parse-failure 38.46% (>1% unusable output)"
     }
   ]
 }

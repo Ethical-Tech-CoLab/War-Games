@@ -133,32 +133,33 @@ and exposed through the same proxy — the model id alone selects cloud vs on-bo
 | `deepseek-r1:8b` | reasoning | experimental (verbose / slow — see note) |
 | `hf.co/unsloth/Qwen3.6-27B-GGUF:latest` | large instruct | premium on-box |
 
-**Validated today (operational telemetry).** The proxy **routes** on-box model ids to local
-Ollama and cloud ids to GitHub Models over one endpoint; on-box models **respond with valid
-persona JSON** in interactive play; and inference runs at **$0 marginal cost with no rate
-limits** — unlike the throttled small-tier cloud models (Phi-4 / Ministral were rate-limited
-to 1 / 0 games; see [Simulation-Output.md](Simulation-Output.md) §4.4).
+**Measured** (5 games each, `turnCap = 12`, via the proxy; origin allow-list enforced):
 
-**Expected behavior by class** (from the synthetic tracks, to confirm at volume):
-`deepseek-r1` is reasoning-class → verbose and slower (the synthetic reasoning class showed
-p95 ≈ 7 reply lines); `gemma3` / `qwen3` are small–mid → watch JSON reliability and the
-"taught-but-not-learned" rate that hurt the small-fast class. On-box models also benefit most
-from the engine-owned escalation fix (R-H4), which removes reliance on the model to end the
-game.
+| Model | JSON valid | Parse-fail | Unresolved | Turns (mean) | **Latency/game** | Tokens in/out | Marginal cost |
+|---|---|---|---|---|---|---|---|
+| **gemma3:12b** | **100%** | **0%** | 20% | 6.0 | **5.8 s** | 6,585 / 435 | **$0** |
+| qwen3:14b | 61.5% | 38.5% | 0% | 5.2 | 16.9 s | 5,538 / 1,191 | $0 |
+| deepseek-r1:8b | 6.7% | 93.3% | 100% | 12 | 33.3 s | 10,217 / 5,779 | $0 |
+| Qwen3-27B (GGUF) | 0% | 100% | 100% | 12 | **92.1 s** | 10,461 / 6,000 | $0 |
 
-**Next measurement (rate-limit-free).** Because the B3IQ node has no per-token cost or
-throttling, it is the ideal place to run the *same* Monte-Carlo at scale. Back up
-`sim/results/` first (a run wipes it), then point the real track at the proxy:
+**Headline: `gemma3:12b` is the on-box winner** — 100% valid JSON, 0 parse failures, and the
+**fastest model measured anywhere in this study (5.8 s/game — faster than cloud gpt-4o-mini's
+13.7 s)** at **$0 marginal cost**. The **"thinking" models** (`qwen3`, `deepseek-r1`,
+`Qwen3-27B`) leak chain-of-thought into the reply and break the JSON contract (down to **0%**
+on the 27B), inflating tokens and latency (up to **92 s/game**) — so the *biggest* on-box
+model is the *worst* fit. This mirrors the cloud lesson: the game rewards
+**instruction-following + strict structured output**, not reasoning. Full report:
+[Simulation-Output.md](Simulation-Output.md) §4B (Track D).
 
-```powershell
-# sim/.env.local: GITHUB_TOKEN=<proxy token>, GH_MODELS_ENDPOINT=<proxy>/v1/chat/completions,
-#                 SIM_MODELS=gemma3:12b,qwen3:14b,deepseek-r1:8b
-node sim/simulate.mjs --scripted 0 --synthetic 0 --real 12
-node sim/analyze.mjs
-```
+Operationally, the proxy **routes** on-box ids to local Ollama and cloud ids to GitHub Models
+over one endpoint, injects the token server-side, and **enforces an origin allow-list** (a
+request without an allowed `Origin` gets `403`). On-box inference has **no per-token cost and
+no rate limits** — unlike the small-tier cloud models (Phi-4 / Ministral were throttled to
+1 / 0 games).
 
-The results (JSON validity, unresolved %, latency/game, tokens) drop straight into the §4
-table for a true cloud-vs-GPU comparison.
+Reproduce: `node sim/simulate.mjs --scripted 0 --synthetic 0 --real 5` with `sim/.env.local`
+pointing `GH_MODELS_ENDPOINT` at the proxy, `SIM_MODELS` to the on-box ids, and
+`SIM_ORIGIN=https://ethical-tech-colab.github.io`; then `node sim/analyze.mjs`.
 
 ---
 

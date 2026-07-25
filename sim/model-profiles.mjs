@@ -183,6 +183,9 @@ export function makeRealResponder({ endpoint, token, model, nameSetKey }) {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
+            // When benchmarking through the pages-ai-proxy (origin allow-list), set
+            // SIM_ORIGIN to an allowed origin so the proxy accepts non-browser requests.
+            ...(process.env.SIM_ORIGIN ? { Origin: process.env.SIM_ORIGIN } : {}),
           },
           body: JSON.stringify(body),
         });
