@@ -440,44 +440,103 @@ document.getElementById('norad-btn').addEventListener('click', () => {
   norad.toggle();
 });
 
-// ---------- Device pairing (multi-device EASY sync — DESIGN-IDEA-NORAD-SCENE.md §8) ----------
+// ---------- Device pairing (multi-device sync — DESIGN-IDEA-NORAD-SCENE.md §8) ----------
+// EASY = deterministic shared-seed pairing (no live server state). MEDIUM = live
+// leader→follower over the proxy /sync KV; the leader can push RESYNC/ABORT/DEFCON and the
+// follower reacts within ~1s. The "LIVE SYNC" checkbox chooses the tier.
+const LEAD_MS = 20000; // lead time to carry/scan the link to the second screen
 const pairEls = {
   overlay: document.getElementById('pair-overlay'),
   url: document.getElementById('pair-url'),
   room: document.getElementById('pair-room'),
   countdown: document.getElementById('pair-countdown'),
+  live: document.getElementById('pair-live'),
+  liveControls: document.getElementById('pair-live-controls'),
+  resync: document.getElementById('pair-resync'),
+  abort: document.getElementById('pair-abort'),
+  liveStatus: document.getElementById('pair-live-status'),
   copy: document.getElementById('pair-copy'),
   openHere: document.getElementById('pair-open'),
   close: document.getElementById('pair-close'),
 };
+
+let followerPlanKey = ''; // last applied timeline key, so live DEFCON-only pushes don't restart
+
+/**
+ * Where the MEDIUM /sync KV lives. The local dev server (serve.mjs) hosts it same-origin;
+ * in production it must live on the proxy (GitHub Pages is static) — derive its origin from
+ * the configured proxy URL. Falls back to same-origin.
+ */
+function resolveSyncBase() {
+  if (location.port === '8787') return '';
+  const p = (SETTINGS.llm.proxyUrl || '').trim();
+  if (p) {
+    try {
+      return new URL(p, location.href).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return '';
+}
+
+function buildLeader(room) {
+  return SyncSession.createLeader({
+    code: 'CPE1704TKS',
+    mask: 'LLLDDDDLLL',
+    durationMs: 45000,
+    leadMs: LEAD_MS,
+    room,
+    mode: pairEls.live.checked ? 'medium' : 'easy',
+    syncBase: resolveSyncBase(),
+  });
+}
+
+function setLiveStatus(msg) {
+  if (pairEls.liveStatus) pairEls.liveStatus.textContent = msg || '';
+}
+
+function refreshPairUrl() {
+  pairEls.url.value = pairLeader.followerUrl();
+  pairEls.room.textContent = pairLeader.payload.room;
+}
+
+function restartPairCountdown() {
+  stopPairCountdown();
+  const tick = () => {
+    const secs = Math.max(0, Math.ceil((pairLeader.payload.epochStart - pairLeader.now()) / 1000));
+    pairEls.countdown.textContent = `${secs}S`;
+    if (secs <= 0) stopPairCountdown();
+  };
+  tick();
+  pairCountdownTimer = setInterval(tick, 500);
+}
 
 function stopPairCountdown() {
   clearInterval(pairCountdownTimer);
   pairCountdownTimer = null;
 }
 
-function openPairPanel() {
-  // Mint a fresh deterministic timeline for the two screens. The leader (this bedroom device)
-  // hands the follower link to a second device that will run the NORAD board in lockstep.
-  pairLeader = SyncSession.createLeader({
-    code: 'CPE1704TKS',
-    mask: 'LLLDDDDLLL',
-    durationMs: 45000,
-    leadMs: 20000, // lead time to carry/scan the link to the second screen
-  });
-  norad.names = norad.names || null;
-  pairEls.url.value = pairLeader.followerUrl();
-  pairEls.room.textContent = pairLeader.payload.room;
-  pairEls.overlay.hidden = false;
+// (Re)mint the leader timeline in the currently-selected tier, aligning the clock so the
+// shared epoch is expressed in the common reference frame. In MEDIUM it also creates the room.
+async function armLeader(room) {
+  pairLeader = buildLeader(room);
+  await pairLeader.align();
+  pairLeader.payload.epochStart = pairLeader.now() + LEAD_MS;
+  refreshPairUrl();
+  restartPairCountdown();
+  if (pairLeader.mode === 'medium') {
+    await pairLeader.publish({ status: 'running' });
+    setLiveStatus(`ROOM ${pairLeader.payload.room} LIVE`);
+  } else {
+    setLiveStatus('');
+  }
+}
 
-  stopPairCountdown();
-  const tick = () => {
-    const secs = Math.max(0, Math.ceil((pairLeader.payload.epochStart - Date.now()) / 1000));
-    pairEls.countdown.textContent = `${secs}S`;
-    if (secs <= 0) stopPairCountdown();
-  };
-  tick();
-  pairCountdownTimer = setInterval(tick, 500);
+async function openPairPanel() {
+  pairEls.overlay.hidden = false;
+  pairEls.liveControls.hidden = !pairEls.live.checked;
+  await armLeader();
 }
 
 function closePairPanel() {
@@ -487,6 +546,24 @@ function closePairPanel() {
 
 document.getElementById('pair-btn').addEventListener('click', openPairPanel);
 pairEls.close.addEventListener('click', closePairPanel);
+pairEls.live.addEventListener('change', async () => {
+  pairEls.liveControls.hidden = !pairEls.live.checked;
+  await armLeader(); // rebuild in the newly-chosen tier
+});
+pairEls.resync.addEventListener('click', async () => {
+  // Restart the sequence on every screen: new epoch (short lead) + new seed.
+  pairLeader.payload.epochStart = pairLeader.now() + 8000;
+  pairLeader.payload.seed = (Math.random() * 0x7fffffff) >>> 0;
+  pairLeader.payload.status = 'running';
+  await pairLeader.publish({});
+  refreshPairUrl();
+  restartPairCountdown();
+  setLiveStatus('RESYNC PUSHED');
+});
+pairEls.abort.addEventListener('click', async () => {
+  await pairLeader.publish({ status: 'aborted' });
+  setLiveStatus('ABORT PUSHED');
+});
 pairEls.copy.addEventListener('click', async () => {
   pairEls.url.select();
   try {
@@ -498,32 +575,66 @@ pairEls.copy.addEventListener('click', async () => {
   }
 });
 // Preview the follower board on THIS device (useful for single-machine testing).
-pairEls.openHere.addEventListener('click', async () => {
+pairEls.openHere.addEventListener('click', () => {
   closePairPanel();
-  await pairLeader.align();
-  norad.openScheduled(pairLeader.plan());
+  const follower = SyncSession.fromString(pairLeader.encode(), {
+    syncBase: resolveSyncBase(),
+    mode: pairLeader.mode,
+  });
+  runFollower(follower);
 });
+
+/** Run a device as the NORAD follower: align, open the scheduled board, and (MEDIUM) react to
+ *  live leader pushes. Shared by the same-device preview and the ?sync= bootstrap. */
+async function runFollower(session) {
+  norad.names = norad.names || NAME_SETS[DEFAULT_NAME_SET];
+  await session.align();
+  followerPlanKey = planKey(session.payload);
+  norad.openScheduled(session.plan());
+  if (session.mode === 'medium') {
+    session.subscribe((state) => applyFollowerState(session, state));
+  }
+}
+
+function planKey(p) {
+  return `${p.epochStart}:${p.seed}:${p.durationMs}:${p.code}`;
+}
+
+// Apply a live leader push: DEFCON updates in place; abort halts; a changed timeline restarts.
+function applyFollowerState(session, state) {
+  if (typeof state.defcon === 'number') norad.setDefcon(state.defcon);
+  if (state.status === 'aborted') {
+    norad.abort();
+    return;
+  }
+  const key = planKey(state);
+  if (key !== followerPlanKey) {
+    followerPlanKey = key;
+    norad.openScheduled(session.plan());
+  }
+}
 
 /**
  * If the page is opened with a ?sync=<payload> param, this device is the NORAD FOLLOWER: a
- * pure big-board display. Skip the menu, align the shared clock, and run the deterministic
- * scheduled crack so it stays calibrated with the leader (bedroom) device (EASY sync).
+ * pure big-board display. Skip the menu and run the scheduled crack so it stays calibrated
+ * with the leader (bedroom) device. ?live=1 selects the MEDIUM tier (live leader pushes);
+ * otherwise it runs the EASY deterministic timeline.
  * @returns {Promise<boolean>} true if it booted as a follower
  */
 async function maybeBootstrapFollower() {
-  const syncParam = new URLSearchParams(location.search).get('sync');
+  const params = new URLSearchParams(location.search);
+  const syncParam = params.get('sync');
   if (!syncParam) return false;
+  const mode = params.get('live') === '1' ? 'medium' : 'easy';
   let session;
   try {
-    session = SyncSession.fromString(syncParam);
+    session = SyncSession.fromString(syncParam, { syncBase: resolveSyncBase(), mode });
   } catch (e) {
     console.warn('Invalid ?sync= payload; ignoring.', e);
     return false;
   }
   els.menuOverlay.hidden = true;
-  norad.names = NAME_SETS[DEFAULT_NAME_SET];
-  await session.align();
-  norad.openScheduled(session.plan());
+  await runFollower(session);
   return true;
 }
 

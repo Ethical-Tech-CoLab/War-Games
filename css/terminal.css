@@ -1400,3 +1400,32 @@ input:focus {
   flex-wrap: wrap;
   align-items: center;
 }
+.pair-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--fg-dim);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.pair-toggle input {
+  accent-color: var(--fg);
+  width: 15px;
+  height: 15px;
+}
+.pair-live-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px;
+  border: 1px dashed var(--fg-dim);
+}
+.pair-live-status {
+  font-size: 0.72rem;
+  color: var(--amber);
+  letter-spacing: 1px;
+}

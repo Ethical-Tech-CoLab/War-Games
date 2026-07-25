@@ -466,13 +466,19 @@ access control.
 - **Cons:** ~1s polling latency; needs a trivial proxy change + a little state hygiene
   (expire stale rooms).
 - **Best for:** an interactive two-screen experience where the player's actions matter.
-- **Status: scaffolded, inert until enabled.** [js/sync.js](js/sync.js) already exposes the
-  target surface — `SyncSession.publish(partial)` (leader) and `SyncSession.subscribe(cb)`
-  (follower) — behind a `mode` flag; they are no-ops until `mode === 'medium'`. Turning
-  Medium on means: implement the two `TODO(medium)` bodies (`POST`/poll the proxy `/sync/:room`
-  KV) and pass `mode:'medium'` when constructing the session. Because `plan()`/`now()`/`align()`
-  are unchanged, **[js/norad.js](js/norad.js) and [js/main.js](js/main.js) need no edits** —
-  the follower just receives live `rev`-gated updates instead of a fixed timeline.
+- **Status: shipped (live).** Implemented end to end: a room-keyed KV (`GET`/`POST
+  /sync/:room`, in-memory, server-owned monotonic `rev`, 30-min idle prune, permissive CORS)
+  in [serve.mjs](serve.mjs); `SyncSession.publish()` / `subscribe()` in [js/sync.js](js/sync.js)
+  (rev-gated ~1s polling); and follower reactions in [js/main.js](js/main.js) — DEFCON updates
+  in place, RESYNC restarts the timeline in lockstep, ABORT halts mid-run. **How to use it:**
+  tick **LIVE SYNC (medium)** in the PAIR panel — the follower link gains `&live=1`, the leader
+  publishes the room, and **PUSH RESYNC** / **PUSH ABORT** appear to drive all screens live.
+  Verified with two tabs: follower followed the crack, DEFCON changed live, and ABORT froze
+  the board within ~1s.
+- **Production note:** the dev server hosts `/sync` same-origin; on GitHub Pages (static) the
+  same endpoint must live on the **pages-ai-proxy** (reuse its origin allow-list). The client
+  already targets the proxy origin via `resolveSyncBase()` when not on the local dev port, so
+  only the proxy needs the ~30-line KV added.
 
 #### Hard — push + tight clock discipline (SSE/WebSocket)
 
@@ -495,6 +501,10 @@ the follower to react to *live* player choices; it's a small, contained extensio
 existing proxy. Reserve **Hard** (SSE) for a polished installation where frame-tight lockstep
 is worth the added moving parts. In all three, the synced object is the same §7 calibrator —
 so the multi-device work is "run the calibrator across two machines," not a new system.
+
+> **Current state:** **Easy and Medium are both shipped** (Easy = the default; Medium = the
+> **LIVE SYNC** toggle). **Hard (SSE) is the only remaining tier** — a future upgrade of the
+> already-shipped `/sync` KV to a push stream when frame-tight lockstep is needed.
 
 ---
 
@@ -538,7 +548,8 @@ so the multi-device work is "run the calibrator across two machines," not a new 
 - **Two screens, one room (§8):** share that same calibrator across devices using **only the
   proxy** — **Easy** = deterministic shared-seed pairing (QR/room code, no server state);
   **Medium** = a tiny proxy `/sync` KV + ~1s polling for live leader→follower updates;
-  **Hard** = SSE push + Cristian's-algorithm clock offset for frame-tight lockstep. Start
-  Easy, add Medium for interactivity.
+  **Hard** = SSE push + Cristian's-algorithm clock offset for frame-tight lockstep. **Easy and
+  Medium are shipped** (Medium = the LIVE SYNC toggle with PUSH RESYNC / PUSH ABORT); Hard is
+  the only remaining tier.
 - Keep it an **homage**: OFL font, original code strings, shared DEFCON state, and a clean
   fallback so it works offline and respects reduced-motion.

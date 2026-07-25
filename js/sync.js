@@ -121,14 +121,15 @@ export class SyncSession {
    *   role      {'leader'|'follower'} the bedroom drives; NORAD follows
    *   payload   {object} the shared SyncState
    *   alignUrl  {string} shared-reference URL for clock offset (default: same-origin)
-   *   proxyUrl  {string} reserved for MEDIUM (proxy /sync KV); unused in EASY
+   *   syncBase  {string} URL prefix for the MEDIUM /sync KV (default '' = same-origin dev
+   *             server; in production this is the proxy origin, e.g. 'https://proxy.example')
    */
-  constructor({ mode = 'easy', role = 'follower', payload = null, alignUrl = '', proxyUrl = '' } = {}) {
+  constructor({ mode = 'easy', role = 'follower', payload = null, alignUrl = '', syncBase = '' } = {}) {
     this.mode = mode;
     this.role = role;
     this.payload = payload;
     this.alignUrl = alignUrl || defaultAlignUrl();
-    this.proxyUrl = proxyUrl;
+    this.syncBase = syncBase.replace(/\/$/, '');
     this.offsetMs = 0;
     this._subs = [];
     this._pollTimer = null;
@@ -136,26 +137,28 @@ export class SyncSession {
   }
 
   /** Leader factory: mint a fresh deterministic timeline for the two screens. */
-  static createLeader({ code, mask, durationMs, calib = null, leadMs = 15000, room, alignUrl, proxyUrl, mode = 'easy' } = {}) {
+  static createLeader({ code, mask, durationMs, calib = null, leadMs = 15000, room, alignUrl, syncBase, mode = 'easy' } = {}) {
     const payload = {
       v: 1,
       room: room || randomRoom(),
       role: 'norad', // the link is meant to be opened on the NORAD display
+      status: 'armed', // armed | running | aborted | complete (MEDIUM live state)
       epochStart: Date.now() + leadMs,
       code,
       mask,
       seed: (Math.random() * 0x7fffffff) >>> 0,
       durationMs,
+      defcon: 5,
       calib,
       rev: 0,
     };
-    return new SyncSession({ mode, role: 'leader', payload, alignUrl, proxyUrl });
+    return new SyncSession({ mode, role: 'leader', payload, alignUrl, syncBase });
   }
 
   /** Follower factory: rebuild the session from a pairing string (URL param / room code). */
-  static fromString(str, { alignUrl, proxyUrl, mode = 'easy' } = {}) {
+  static fromString(str, { alignUrl, syncBase, mode = 'easy' } = {}) {
     const payload = decodePayload(str);
-    return new SyncSession({ mode, role: payload.role || 'follower', payload, alignUrl, proxyUrl });
+    return new SyncSession({ mode, role: payload.role || 'follower', payload, alignUrl, syncBase });
   }
 
   /** Align this device's clock to the shared reference. Safe to call once at start. */
@@ -178,6 +181,8 @@ export class SyncSession {
     const u = new URL(base, location.href);
     u.hash = '';
     u.searchParams.set('sync', this.encode());
+    if (this.mode === 'medium') u.searchParams.set('live', '1');
+    else u.searchParams.delete('live');
     return u.toString();
   }
 
@@ -195,30 +200,67 @@ export class SyncSession {
   }
 
   // ---------------------------------------------------------------------------------------
-  // MEDIUM tier (prepared, NOT active in EASY). Turning this on means: leader publish()es
-  // SyncState to a tiny proxy KV on each DEFCON/phase change, and followers subscribe() by
-  // polling. The plan()/now()/align() surface above is unchanged, so norad.js/main.js need
-  // no edits — only these two methods light up and main.js picks mode:'medium'.
-  // See DESIGN-IDEA-NORAD-SCENE.md §8.3 (Medium).
+  // MEDIUM tier — live leader→follower over a tiny proxy KV (§8.3 Medium). The plan()/now()/
+  // align() surface above is unchanged, so norad.js needs no edits; main.js opts in with
+  // mode:'medium' and drives publish()/subscribe(). The server owns the monotonic `rev`.
   // ---------------------------------------------------------------------------------------
 
-  /** Leader → server. Inert until mode==='medium'. */
-  async publish(partial = {}) {
-    if (this.mode !== 'medium') return;
-    this.payload = { ...this.payload, ...partial, rev: (this.payload.rev || 0) + 1 };
-    // TODO(medium): POST `${this.proxyUrl}/sync/${this.payload.room}` with this.payload.
-    // Reuse the proxy's existing CORS origin allow-list; expire stale rooms server-side.
+  /** The room-scoped KV URL (same-origin dev server, or the proxy origin in production). */
+  _syncUrl() {
+    return `${this.syncBase}/sync/${encodeURIComponent(this.payload.room)}`;
   }
 
-  /** Follower ← server. Returns an unsubscribe fn. Inert until mode==='medium'. */
-  subscribe(cb) {
+  /** Leader → server: merge a partial update into the SyncState and POST it. */
+  async publish(partial = {}) {
+    if (this.mode !== 'medium') return this.payload;
+    this.payload = { ...this.payload, ...partial };
+    try {
+      const res = await fetch(this._syncUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.payload),
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const stored = await res.json();
+        this.payload = stored; // adopt the server-assigned rev
+        if (typeof stored.rev === 'number') this._lastRev = stored.rev;
+      }
+    } catch (e) {
+      console.warn('sync publish failed (will retry on next change):', e);
+    }
+    return this.payload;
+  }
+
+  /**
+   * Follower ← server: poll the room every ~1s and fire cb(state) only on a NEWER rev, so
+   * callers act just once per leader change. Returns an unsubscribe fn.
+   */
+  subscribe(cb, intervalMs = 1000) {
     if (this.mode !== 'medium') return () => {};
-    // TODO(medium): poll `GET ${this.proxyUrl}/sync/${room}` every ~1s; ignore reads whose
-    // rev is not newer than this._lastRev; on a newer rev, update this.payload and call
-    // cb(this.payload) so NoradScene.syncProgress()/plan() reflects the live leader state.
     this._subs.push(cb);
+    const poll = async () => {
+      try {
+        const res = await fetch(this._syncUrl(), { cache: 'no-store' });
+        if (!res.ok) return; // 404 = room not created yet; keep polling
+        const remote = await res.json();
+        if (typeof remote.rev === 'number' && remote.rev > this._lastRev) {
+          this._lastRev = remote.rev;
+          this.payload = remote;
+          for (const f of this._subs) f(remote);
+        }
+      } catch {
+        /* transient network error; keep polling */
+      }
+    };
+    poll();
+    if (!this._pollTimer) this._pollTimer = setInterval(poll, intervalMs);
     return () => {
       this._subs = this._subs.filter((f) => f !== cb);
+      if (this._subs.length === 0) {
+        clearInterval(this._pollTimer);
+        this._pollTimer = null;
+      }
     };
   }
 

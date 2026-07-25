@@ -265,6 +265,15 @@
             <span>ROOM <strong id="pair-room">—</strong></span>
             <span>SEQUENCE BEGINS IN <strong id="pair-countdown">—</strong></span>
           </div>
+          <label class="pair-toggle">
+            <input type="checkbox" id="pair-live" />
+            <span>LIVE SYNC (medium) — follower reacts to this device in real time</span>
+          </label>
+          <div class="pair-live-controls" id="pair-live-controls" hidden>
+            <button class="ghost-btn" id="pair-resync" type="button" title="Restart the sequence on all screens">PUSH RESYNC</button>
+            <button class="ghost-btn" id="pair-abort" type="button" title="Abort the sequence on all screens">PUSH ABORT</button>
+            <span class="pair-live-status" id="pair-live-status"></span>
+          </div>
           <div class="pair-actions">
             <button class="primary-btn" id="pair-copy" type="button">COPY LINK</button>
             <button class="ghost-btn" id="pair-open" type="button" title="Preview the NORAD board on this device">OPEN HERE</button>
