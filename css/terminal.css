@@ -310,11 +310,21 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 
-/* The chess pawn glyph renders taller than text; a fixed box height + centered flex keeps
-   every status button identical, and a slightly larger glyph stays legible without growing
-   the box. */
-#chess-btn {
-  font-size: calc(var(--btn-font) + 0.35rem);
+/* Icon-only status button (e.g. the chess piece): no box, just the phosphor glyph rendered
+   like a board piece, so it sits tight against the adjacent boxed buttons. */
+.ghost-btn.icon-only {
+  border-color: transparent;
+  background: transparent;
+  padding: 0 2px;
+  font-size: calc(var(--btn-font) + 0.6rem);
+  color: var(--fg-bright);
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.7);
+  font-variant-emoji: text; /* force the monochrome glyph, matching the chess board pieces */
+}
+.ghost-btn.icon-only:hover {
+  background: transparent;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(51, 255, 102, 0.95);
 }
 
 .ghost-btn:hover {
@@ -933,6 +943,8 @@ input:focus {
   color: var(--amber);
   letter-spacing: 1px;
   min-height: 1.4em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px rgba(255, 204, 51, 0.4); /* match the terminal's amber phosphor glow */
 }
 
 .cp-board {
@@ -994,17 +1006,19 @@ input:focus {
   gap: 6px;
   padding: 6px 12px;
 }
-/* Match the old-school header buttons: transparent, dim border, same font + spacing.
+/* Match the shared button treatment: transparent, dim border, same font + fixed height.
    Uses #cp-move so it outranks the global input[type="text"] rule. */
 #cp-move.cp-move {
   flex: 1;
+  height: var(--btn-h);
+  box-sizing: border-box;
   background: transparent;
   color: var(--fg);
   border: 1px solid var(--fg-dim);
   font-family: var(--font);
-  font-size: 0.75rem;
+  font-size: var(--btn-font);
   letter-spacing: 1px;
-  padding: 4px 10px;
+  padding: 0 10px;
 }
 #cp-move.cp-move:focus {
   outline: none;
@@ -1049,6 +1063,23 @@ input:focus {
   background: var(--warn);
   color: #000;
   border-color: var(--warn);
+}
+/* Terminal-green retro mic icon (inline SVG, currentColor) — replaces the color emoji so it
+   matches the phosphor aesthetic. Inherits the button's color, incl. the .on (recording)
+   state and hover. */
+#cp-mic {
+  gap: 6px;
+}
+.mic-ico {
+  flex: none;
+  vertical-align: -2px;
+}
+#cp-mic.on .mic-ico {
+  animation: micpulse 1s ease-in-out infinite;
+}
+@keyframes micpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @media (max-width: 600px) {
@@ -1217,6 +1248,36 @@ input:focus {
   min-height: 1.2em;
 }
 
+/* Narration routed from the bedroom script (NORAD-POV lines). Hidden unless populated; when
+   the board is only narrating (not cracking), it becomes the centerpiece. */
+.norad-narration {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 88%;
+  color: #cfe6f5;
+  font-size: clamp(0.95rem, 2.2vw, 1.7rem);
+  line-height: 1.5;
+  letter-spacing: 1px;
+  text-shadow: 0 0 12px rgba(159, 227, 255, 0.35);
+}
+.norad-scene.narrating .norad-narration {
+  display: flex;
+}
+/* While purely narrating, de-emphasize the crack UI so the words carry the moment. */
+.norad-scene.narrating .norad-readout,
+.norad-scene.narrating .norad-meta,
+.norad-scene.narrating .norad-status-bottom {
+  opacity: 0.12;
+}
+.norad-narration-line {
+  animation: noradNarrIn 0.5s ease-out 1;
+}
+@keyframes noradNarrIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* The wall-sized launch-code readout. */
 .norad-readout {
   display: flex;
@@ -1377,6 +1438,45 @@ input:focus {
   .norad-meta-right { align-items: center; }
 }
 
+/* ---------- Room badge + viewer modes (#1, #3a) ---------- */
+#room-badge {
+  color: var(--amber);
+  border-color: var(--amber);
+  letter-spacing: 2px;
+}
+#room-badge:hover {
+  background: var(--amber);
+  color: #000;
+}
+
+/* SPLIT: dock the NORAD board beside the terminal; the status bar stays on top, opaque. */
+.crt.view-split .terminal {
+  align-self: flex-start;
+  width: 50%;
+}
+.crt.view-split .norad-scene {
+  left: 50%;
+  border-left: 2px solid var(--fg-dim);
+}
+.crt.view-split .statusbar {
+  position: relative;
+  z-index: 61;
+  background: #041004;
+}
+
+/* MULTI: emphasize the room code so a producer can read it out for others to join. */
+.crt.view-multi #room-badge {
+  font-size: calc(var(--btn-font) + 0.2rem);
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(255, 204, 51, 0.4);
+}
+
+@media (max-width: 700px) {
+  /* Stacking beats side-by-side on small screens. */
+  .crt.view-split .terminal { width: 100%; align-self: stretch; height: 45%; }
+  .crt.view-split .norad-scene { left: 0; top: 55%; border-left: none; border-top: 2px solid var(--fg-dim); }
+}
+
 /* ---------- Device pairing overlay (multi-device EASY sync) ---------- */
 .pair-overlay {
   position: absolute;
@@ -1514,4 +1614,9 @@ input:focus {
   letter-spacing: 1px;
   padding: 8px 10px;
   text-transform: uppercase;
+}
+.join-scene {
+  flex: 0 0 auto;
+  min-width: 0;
+  text-transform: none;
 }

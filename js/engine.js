@@ -100,8 +100,16 @@ export class GameEngine {
       if (nodeId === 'dial_in') await this.term.playModem();
 
       for (const line of node.lines || []) {
+        const text = this._t(line.text);
+        // NORAD-POV lines don't belong in David's bedroom terminal — route them to the NORAD
+        // scene/screen (§2). Falls back to the terminal if no NORAD sink is wired.
+        if (line.scene === 'norad' && this.onNoradLine) {
+          // eslint-disable-next-line no-await-in-loop
+          await this.onNoradLine(text);
+          continue;
+        }
         // eslint-disable-next-line no-await-in-loop
-        await this.term.typeLine(this._t(line.text), line.cls || 'system');
+        await this.term.typeLine(text, line.cls || 'system');
       }
 
       this._applyEffect(node.effect);
@@ -150,8 +158,14 @@ export class GameEngine {
     await this.term.playModem();
     // Shared cold open for continuity with scripted mode.
     for (const line of DIALOGUE.cold_open.lines) {
+      const text = this._t(line.text);
+      if (line.scene === 'norad' && this.onNoradLine) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.onNoradLine(text);
+        continue;
+      }
       // eslint-disable-next-line no-await-in-loop
-      await this.term.typeLine(this._t(line.text), line.cls || 'narrator');
+      await this.term.typeLine(text, line.cls || 'narrator');
     }
     await sleep(600);
     await this.term.typeLine('', 'system');

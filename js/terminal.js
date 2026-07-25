@@ -110,6 +110,7 @@ export class Terminal {
     div.textContent = text;
     this.output.appendChild(div);
     this._scroll();
+    if (this.onLine) this.onLine(text, cls);
     return div;
   }
 
@@ -151,6 +152,8 @@ export class Terminal {
     }
     div.textContent = text;
     this._scroll();
+    // Notify any mirror/broadcast listener that a line finished printing.
+    if (this.onLine) this.onLine(text, cls);
   }
 
   /** Type a line of text into an existing element, char-by-char at typewriter speed. */

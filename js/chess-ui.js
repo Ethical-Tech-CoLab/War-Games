@@ -23,6 +23,11 @@ import { SETTINGS } from './config.js';
 
 const PIECE_NAME = { p: 'PAWN', n: 'KNIGHT', b: 'BISHOP', r: 'ROOK', q: 'QUEEN', k: 'KING' };
 
+// Terminal-green retro mic (inline SVG, currentColor) so the voice button matches the
+// phosphor aesthetic instead of a color emoji. Used for both button states.
+const MIC_SVG =
+  '<svg class="mic-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>';
+
 // Optional spoken commentary, in the same voice as the current session. Picked by event
 // (checkmate/stalemate > check > capture > plain move) and by tone.
 const COMMENTARY = {
@@ -310,18 +315,18 @@ export class ChessPanel {
     };
     rec.onend = () => {
       this.listening = false;
-      if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.textContent = '\uD83C\uDFA4 SPEAK'; }
+      if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.innerHTML = `${MIC_SVG} SPEAK`; }
     };
     this.recognition = rec;
     this.listening = true;
-    if (this.el.mic) { this.el.mic.classList.add('on'); this.el.mic.textContent = '\u25CF LISTENING'; }
+    if (this.el.mic) { this.el.mic.classList.add('on'); this.el.mic.innerHTML = `${MIC_SVG} LISTENING`; }
     this._status('Listening\u2026 say a move, e.g. "e2 e4".');
     try { rec.start(); } catch { this._stopVoice(); }
   }
 
   _stopVoice() {
     this.listening = false;
-    if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.textContent = '\uD83C\uDFA4 SPEAK'; }
+    if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.innerHTML = `${MIC_SVG} SPEAK`; }
     if (this.recognition) {
       try { this.recognition.stop(); } catch { /* ignore */ }
       this.recognition = null;

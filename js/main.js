@@ -39,11 +39,10 @@ const chess = new ChessPanel(root, { audio });
 const norad = new NoradScene(root);
 let chessStarted = false;
 let telemetryTimer = null;
-let pairLeader = null; // SyncSession (leader) minted for the pairing panel
-let pairCountdownTimer = null;
 let engine = null; // the current GameEngine (leader/runtime session)
-let liveSession = null; // SyncSession (medium) the engine publishes to, when LIVE is on
+let liveSession = null; // the always-on broadcast session (medium); every game gets a room
 let activeNameSetKey = DEFAULT_NAME_SET;
+let viewMode = 'single'; // single | split | multi (viewer mode on this device)
 
 // ---------- Populate menu ----------
 function populateNameSets() {
@@ -258,12 +257,21 @@ async function startGame({ names, nameSetKey, mode }) {
   startTelemetryTicker();
 
   engine = new GameEngine({ terminal, telemetry, names, mode });
-  // Bridge the runtime session to the multi-device sync room: whenever the game's DEFCON /
-  // progress / phase changes, push it so a coupled NORAD follower mirrors this session's
-  // pacing (DESIGN-IDEA-NORAD-SCENE.md §7/§8). No-op until LIVE SYNC arms a session.
+  // Bridge the runtime session to the broadcast room AND (in split view) the local NORAD
+  // board, so DEFCON/progress/phase drive every connected screen (§7/§8, #1/#3a).
   engine.onState = (s) => {
     if (liveSession) liveSession.publish(s);
+    if (norad.coupled && !norad.el.scene.hidden) norad.applyState(s);
   };
+  // NORAD-POV script lines are shown on the NORAD scene, not David's terminal (#2).
+  engine.onNoradLine = (text) => norad.showNarration(text, { autoClose: viewMode === 'single' });
+  // Mirror every printed terminal line so a BEDROOM follower can watch this session live.
+  terminal.onLine = (text, cls) => broadcastLine(text, cls);
+
+  // #1: every launched game publishes a stable ROOM code — screens can join at any time.
+  setViewMode('single');
+  await initBroadcast();
+
   await engine.start();
   refreshTelemetryPanel();
 }
@@ -450,11 +458,9 @@ document.getElementById('norad-btn').addEventListener('click', () => {
   norad.toggle();
 });
 
-// ---------- Device pairing (multi-device sync — DESIGN-IDEA-NORAD-SCENE.md §8) ----------
-// EASY = deterministic shared-seed pairing (no live server state). MEDIUM = live
-// leader→follower over the proxy /sync KV; the leader can push RESYNC/ABORT/DEFCON and the
-// follower reacts within ~1s. The "LIVE SYNC" checkbox chooses the tier.
-const LEAD_MS = 20000; // lead time to carry/scan the link to the second screen
+// ---------- Multi-device broadcast, rooms, scenes & viewer modes ----------
+// Every launched game broadcasts a stable ROOM over the proxy /sync KV (#1); any number of
+// NORAD or BEDROOM screens can join it at any time and pick which scene to follow (#3a).
 const pairEls = {
   overlay: document.getElementById('pair-overlay'),
   url: document.getElementById('pair-url'),
@@ -490,98 +496,130 @@ function resolveSyncBase() {
   return '';
 }
 
-function buildLeader(room) {
-  return SyncSession.createLeader({
-    code: 'CPE1704TKS',
-    mask: 'LLLDDDDLLL',
-    durationMs: 45000,
-    leadMs: LEAD_MS,
-    room,
-    mode: pairEls.live.checked ? 'medium' : 'easy',
-    syncBase: resolveSyncBase(),
-  });
-}
-
 function setLiveStatus(msg) {
   if (pairEls.liveStatus) pairEls.liveStatus.textContent = msg || '';
 }
 
-function refreshPairUrl() {
-  pairEls.url.value = pairLeader.followerUrl();
-  pairEls.room.textContent = pairLeader.payload.room;
+const roomEls = {
+  badge: document.getElementById('room-badge'),
+  viewBtn: document.getElementById('view-btn'),
+};
+
+// ---------- Broadcast: every launched game publishes a stable ROOM (#1) ----------
+// A rolling transcript for the BEDROOM mirror, published debounced to avoid chatter.
+let lineBuf = [];
+let linePubTimer = null;
+function broadcastLine(text, cls) {
+  lineBuf.push({ t: text, c: cls });
+  if (lineBuf.length > 80) lineBuf = lineBuf.slice(-80);
+  if (!liveSession) return;
+  liveSession.payload.lines = lineBuf.slice(-40);
+  clearTimeout(linePubTimer);
+  linePubTimer = setTimeout(() => { if (liveSession) liveSession.publish({}); }, 600);
 }
 
-function restartPairCountdown() {
-  stopPairCountdown();
-  const tick = () => {
-    const secs = Math.max(0, Math.ceil((pairLeader.payload.epochStart - pairLeader.now()) / 1000));
-    pairEls.countdown.textContent = `${secs}S`;
-    if (secs <= 0) stopPairCountdown();
-  };
-  tick();
-  pairCountdownTimer = setInterval(tick, 500);
-}
-
-function stopPairCountdown() {
-  clearInterval(pairCountdownTimer);
-  pairCountdownTimer = null;
-}
-
-// (Re)mint the leader timeline in the currently-selected tier, aligning the clock so the
-// shared epoch is expressed in the common reference frame. In MEDIUM it also creates the room
-// and bridges the running game session so the follower mirrors this session's live pacing.
-async function armLeader(room) {
-  pairLeader = buildLeader(room);
-  await pairLeader.align();
-  pairLeader.payload.epochStart = pairLeader.now() + LEAD_MS;
-  // Carry identity + a per-run id so the follower themes correctly and ignores stale runs.
-  pairLeader.payload.nameSet = activeNameSetKey;
-  pairLeader.payload.sessionId = pairLeader.payload.sessionId || String(Date.now());
-  refreshPairUrl();
-  restartPairCountdown();
-  if (pairLeader.mode === 'medium') {
-    liveSession = pairLeader; // engine.onState now publishes here on every change
-    // Seed the room with the game's CURRENT state (or 'armed' before the game starts) so a
-    // follower that joins mid-session immediately mirrors DEFCON/progress.
+// Create the always-on broadcast for this game (called from startGame). One stable room so any
+// number of NORAD/BEDROOM screens can join at any time — useful for takeover events.
+async function initBroadcast() {
+  lineBuf = [];
+  liveSession = SyncSession.createLeader({
+    code: 'CPE1704TKS',
+    mask: 'LLLDDDDLLL',
+    durationMs: 45000,
+    mode: 'medium',
+    syncBase: resolveSyncBase(),
+  });
+  liveSession.payload.nameSet = activeNameSetKey;
+  liveSession.payload.sessionId = String(Date.now());
+  liveSession.payload.lines = [];
+  try {
+    await liveSession.align();
+  } catch {
+    /* offline: the room code still shows, but remote joining needs the /sync endpoint */
+  }
+  updateRoomBadge();
+  try {
     if (engine) engine.emitState();
-    else await pairLeader.publish({ status: 'armed' });
-    setLiveStatus(`ROOM ${pairLeader.payload.room} LIVE — FOLLOWER MIRRORS THIS SESSION`);
-  } else {
-    liveSession = null;
-    setLiveStatus('');
+    else await liveSession.publish({ status: 'armed' });
+  } catch {
+    /* best-effort */
   }
 }
 
-async function openPairPanel() {
+function updateRoomBadge() {
+  if (!roomEls.badge) return;
+  if (liveSession) {
+    roomEls.badge.textContent = `ROOM ${liveSession.payload.room}`;
+    roomEls.badge.hidden = false;
+  } else {
+    roomEls.badge.hidden = true;
+  }
+}
+
+// ---------- Viewer modes (#3a): single | split | multi ----------
+const VIEW_ORDER = ['single', 'split', 'multi'];
+function setViewMode(mode) {
+  viewMode = mode;
+  root.classList.remove('view-single', 'view-split', 'view-multi');
+  root.classList.add(`view-${mode}`);
+  if (roomEls.viewBtn) roomEls.viewBtn.textContent = `VIEW: ${mode.toUpperCase()}`;
+  if (mode === 'split') {
+    // Dock the NORAD board beside the terminal, driven locally by this session's engine.
+    norad.openCoupled({ code: 'CPE1704TKS', mask: 'LLLDDDDLLL', names: norad.names });
+    if (engine) engine.emitState();
+  } else if (norad.coupled) {
+    norad.close();
+  }
+  updateRoomBadge();
+}
+
+// ---------- PAIR panel: show this game's room + join link + live controls ----------
+function pairFollowerUrl(scene) {
+  const u = new URL(location.href.split('#')[0].split('?')[0]);
+  if (liveSession) u.searchParams.set('room', liveSession.payload.room);
+  u.searchParams.set('scene', scene);
+  return u.toString();
+}
+
+function refreshPairPanel() {
+  if (!liveSession) return;
+  pairEls.room.textContent = liveSession.payload.room;
+  pairEls.url.value = pairFollowerUrl('norad');
+}
+
+function openPairPanel() {
+  if (!liveSession) return;
   pairEls.overlay.hidden = false;
-  pairEls.liveControls.hidden = !pairEls.live.checked;
-  await armLeader();
+  if (pairEls.liveControls) pairEls.liveControls.hidden = false;
+  refreshPairPanel();
+  setLiveStatus(`ROOM ${liveSession.payload.room} — SCREENS MAY JOIN ANYTIME`);
 }
 
 function closePairPanel() {
-  stopPairCountdown();
   pairEls.overlay.hidden = true;
 }
 
 document.getElementById('pair-btn').addEventListener('click', openPairPanel);
+if (roomEls.badge) roomEls.badge.addEventListener('click', openPairPanel);
+if (roomEls.viewBtn) {
+  roomEls.viewBtn.addEventListener('click', () => {
+    const i = VIEW_ORDER.indexOf(viewMode);
+    setViewMode(VIEW_ORDER[(i + 1) % VIEW_ORDER.length]);
+  });
+}
 pairEls.close.addEventListener('click', closePairPanel);
-pairEls.live.addEventListener('change', async () => {
-  pairEls.liveControls.hidden = !pairEls.live.checked;
-  await armLeader(); // rebuild in the newly-chosen tier
-});
 pairEls.resync.addEventListener('click', async () => {
-  // Restart the sequence on every screen: new epoch (short lead) + new seed.
-  pairLeader.payload.epochStart = pairLeader.now() + 8000;
-  pairLeader.payload.seed = (Math.random() * 0x7fffffff) >>> 0;
-  pairLeader.payload.status = 'running';
-  await pairLeader.publish({});
-  refreshPairUrl();
-  restartPairCountdown();
-  setLiveStatus('RESYNC PUSHED');
+  // Restart the sequence on every connected screen (fresh seed).
+  if (!liveSession) return;
+  liveSession.payload.seed = (Math.random() * 0x7fffffff) >>> 0;
+  liveSession.payload.status = 'running';
+  await liveSession.publish({});
+  setLiveStatus('RESYNC PUSHED TO ALL SCREENS');
 });
 pairEls.abort.addEventListener('click', async () => {
-  await pairLeader.publish({ status: 'aborted' });
-  setLiveStatus('ABORT PUSHED');
+  if (!liveSession) return;
+  await liveSession.publish({ status: 'aborted' });
+  setLiveStatus('ABORT PUSHED TO ALL SCREENS');
 });
 pairEls.copy.addEventListener('click', async () => {
   pairEls.url.select();
@@ -593,27 +631,31 @@ pairEls.copy.addEventListener('click', async () => {
     document.execCommand('copy'); // fallback for non-secure contexts
   }
 });
-// Preview the follower board on THIS device (single-machine testing). Always a self-contained
-// deterministic preview (EASY), so it animates even though nothing is driving it live.
+// "OPEN HERE" previews both scenes on THIS device by switching to split view.
 pairEls.openHere.addEventListener('click', () => {
   closePairPanel();
-  const preview = SyncSession.fromString(pairLeader.encode(), {
-    syncBase: resolveSyncBase(),
-    mode: 'easy',
-  });
-  runFollower(preview);
+  setViewMode('split');
 });
+// The old LIVE checkbox is obsolete (every game broadcasts live); hide its row if present.
+if (pairEls.live) {
+  const row = pairEls.live.closest('.pair-toggle');
+  if (row) row.hidden = true;
+}
 
 /**
- * Run a device as the NORAD follower. EASY = a self-timed deterministic board off the shared
- * epoch. MEDIUM = a COUPLED board that mirrors the leader's live session pacing: DEFCON and
- * narrative progress (→ cells + eased clock) pushed via subscribe(). Shared by the
- * same-device preview and the ?sync= bootstrap.
+ * Run a device as a follower on a chosen SCENE. scene='norad' → the coupled big board that
+ * mirrors the session's pacing (or a deterministic board for ?sync= easy links). scene=
+ * 'bedroom' → a read-only terminal that mirrors the leader's live transcript + DEFCON.
  */
-async function runFollower(session) {
+async function runFollower(session, scene = 'norad') {
   const setKey = session.payload.nameSet;
   norad.names = (setKey && NAME_SETS[setKey]) || norad.names || NAME_SETS[DEFAULT_NAME_SET];
+  els.menuOverlay.hidden = true;
   await session.align();
+  if (scene === 'bedroom') {
+    runBedroomMirror(session);
+    return;
+  }
   if (session.mode === 'medium') {
     norad.openCoupled({
       code: session.payload.code,
@@ -625,6 +667,37 @@ async function runFollower(session) {
     followerPlanKey = planKey(session.payload);
     norad.openScheduled(session.plan());
   }
+}
+
+// A read-only BEDROOM terminal that mirrors the leader's live transcript + DEFCON (#3a Multi).
+function runBedroomMirror(session) {
+  els.statusbar.hidden = false;
+  els.terminal.hidden = false;
+  const inputRow = document.getElementById('input-row');
+  if (inputRow) inputRow.hidden = true;
+  const choices = document.getElementById('choices');
+  if (choices) choices.hidden = true;
+  terminal.setMode('BEDROOM \u00b7 LIVE MIRROR');
+  const render = (state) => {
+    if (typeof state.defcon === 'number') terminal.setDefcon(state.defcon);
+    if (Array.isArray(state.lines)) renderMirrorLines(state.lines);
+  };
+  render(session.payload);
+  session.subscribe(render);
+}
+
+function renderMirrorLines(lines) {
+  const out = document.getElementById('output');
+  if (!out) return;
+  out.innerHTML = '';
+  for (const ln of lines) {
+    const div = document.createElement('div');
+    div.className = `line ${ln.c || 'system'}`;
+    div.textContent = ln.t;
+    out.appendChild(div);
+  }
+  const scroller = out.closest('.terminal') || out.parentElement;
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
 }
 
 function planKey(p) {
@@ -641,14 +714,14 @@ function planKey(p) {
  */
 async function maybeBootstrapFollower() {
   const params = new URLSearchParams(location.search);
+  const scene = params.get('scene') === 'bedroom' ? 'bedroom' : 'norad';
 
   // Join-by-room: the lightweight path (short code, no huge hash).
   const roomParam = params.get('room');
   if (roomParam) {
     try {
       const session = await SyncSession.joinByRoom(roomParam, { syncBase: resolveSyncBase() });
-      els.menuOverlay.hidden = true;
-      await runFollower(session);
+      await runFollower(session, scene);
       return true;
     } catch (e) {
       console.warn('join by room failed:', e);
@@ -666,29 +739,29 @@ async function maybeBootstrapFollower() {
     console.warn('Invalid ?sync= payload; ignoring.', e);
     return false;
   }
-  els.menuOverlay.hidden = true;
-  await runFollower(session);
+  await runFollower(session, scene);
   return true;
 }
 
-// Start-menu JOIN: run this device as the NORAD board by typing the short room code.
+// Start-menu JOIN: run this device as a follower on the chosen scene by typing the room code.
 const joinEls = {
   input: document.getElementById('join-room'),
+  scene: document.getElementById('join-scene'),
   btn: document.getElementById('join-btn'),
   hint: document.getElementById('join-hint'),
 };
 async function joinByRoomCode() {
   const room = (joinEls.input.value || '').trim();
   if (!room) {
-    joinEls.hint.textContent = 'Enter the room code shown on the first device (PAIR panel).';
+    joinEls.hint.textContent = 'Enter the room code shown on the first device (ROOM badge / PAIR panel).';
     return;
   }
-  joinEls.hint.textContent = `Joining ${room.toUpperCase()}…`;
+  const scene = joinEls.scene ? joinEls.scene.value : 'norad';
+  joinEls.hint.textContent = `Joining ${room.toUpperCase()} as ${scene.toUpperCase()}\u2026`;
   try {
     const session = await SyncSession.joinByRoom(room, { syncBase: resolveSyncBase() });
     audio.unlock(); // this click is a valid user gesture for audio
-    els.menuOverlay.hidden = true;
-    await runFollower(session);
+    await runFollower(session, scene);
   } catch (e) {
     joinEls.hint.textContent = e.message || 'Could not join that room.';
   }
@@ -705,6 +778,14 @@ els.restartBtn.addEventListener('click', () => {
   acClose();
   acResetPanel();
   chess.close();
+  norad.close();
+  // Tear down the broadcast so the next game gets a fresh room.
+  if (liveSession) liveSession.stop();
+  liveSession = null;
+  terminal.onLine = null;
+  clearTimeout(linePubTimer);
+  updateRoomBadge();
+  setViewMode('single');
   terminal.clear();
   els.menuOverlay.hidden = false;
 });

@@ -67,6 +67,7 @@ export class NoradScene {
       clockValue: root.querySelector('#norad-clock-value'),
       system: root.querySelector('#norad-system'),
       statusBottom: root.querySelector('#norad-status-bottom'),
+      narration: root.querySelector('#norad-narration'),
     };
 
     this.names = opts.names || null;
@@ -316,6 +317,44 @@ export class NoradScene {
   toggle() {
     if (this.el.scene.hidden) this.open();
     else this.close();
+  }
+
+  /**
+   * Show NORAD-POV narration routed from the bedroom script (§2). Opens the scene into a
+   * "narrating" state where the words are the centerpiece. In single-screen, autoClose makes
+   * it a brief cutaway that returns to the terminal; in split/multi it stays docked.
+   */
+  showNarration(text, { autoClose = true } = {}) {
+    this.el.scene.hidden = false;
+    this.root.classList.add('norad-open');
+    this._applyTheme();
+    this.el.scene.classList.add('narrating');
+    if (!this._narrating) {
+      if (this.el.narration) this.el.narration.innerHTML = '';
+      this._narrating = true;
+    }
+    if (this.el.narration && text && text.trim()) {
+      const line = document.createElement('div');
+      line.className = 'norad-narration-line';
+      line.textContent = text;
+      this.el.narration.appendChild(line);
+    }
+    clearTimeout(this._narrationTimer);
+    if (autoClose) {
+      this._narrationTimer = setTimeout(() => this.endNarration(), 2800);
+    }
+  }
+
+  /** End a narration cutaway. Hides the scene only if nothing else (a crack) is running. */
+  endNarration() {
+    clearTimeout(this._narrationTimer);
+    this._narrating = false;
+    this.el.scene.classList.remove('narrating');
+    if (this.el.narration) this.el.narration.innerHTML = '';
+    if (!this.running) {
+      this.el.scene.hidden = true;
+      this.root.classList.remove('norad-open');
+    }
   }
 
   _stop() {

@@ -23,9 +23,11 @@
         </div>
         <div class="status-right">
           <span class="mode-badge" id="mode-badge"></span>
+          <button class="ghost-btn" id="room-badge" type="button" title="This game's room code — click to pair screens" hidden>ROOM —</button>
+          <button class="ghost-btn" id="view-btn" type="button" title="Viewer mode: Single / Split / Multi">VIEW: SINGLE</button>
           <button class="ghost-btn" id="norad-btn" type="button" title="NORAD big board">NORAD</button>
           <button class="ghost-btn" id="pair-btn" type="button" title="Pair a second screen">PAIR</button>
-          <button class="ghost-btn" id="chess-btn" type="button" title="Chess">&#9823;</button>
+          <button class="ghost-btn icon-only" id="chess-btn" type="button" title="Chess" aria-label="Chess">&#9822;</button>
           <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
         </div>
@@ -83,12 +85,16 @@
 
           <button class="primary-btn" id="start-btn" type="button">CONNECT</button>
 
-          <!-- Second-screen join: type a short ROOM code (from the other device's PAIR panel)
-               to run this device as the NORAD big board — no giant link to retype. -->
+          <!-- Second-screen join: type a short ROOM code (from the other device's PAIR panel
+               or the ROOM badge) and pick which scene this screen follows. -->
           <div class="join-row">
             <span class="join-label">SECOND SCREEN?</span>
             <input id="join-room" class="join-input" type="text" spellcheck="false"
                    autocomplete="off" placeholder="NORAD ROOM CODE, e.g. TANGO-96" />
+            <select id="join-scene" class="join-input join-scene" title="Which scene this screen follows" aria-label="Scene to follow">
+              <option value="norad">Follow: NORAD board</option>
+              <option value="bedroom">Follow: BEDROOM terminal</option>
+            </select>
             <button class="ghost-btn" id="join-btn" type="button">JOIN</button>
           </div>
           <p class="field-hint" id="join-hint"></p>
@@ -201,7 +207,7 @@
         <div class="cp-board" id="cp-board"></div>
         <div class="cp-input-row">
           <input id="cp-move" class="cp-move" type="text" autocomplete="off" spellcheck="false" placeholder="type a move, e.g. e2e4" />
-          <button class="ghost-btn" id="cp-mic" type="button" title="Speak your move">🎤 SPEAK</button>
+          <button class="ghost-btn" id="cp-mic" type="button" title="Speak your move"><svg class="mic-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg> SPEAK</button>
           <button class="ghost-btn" id="cp-play" type="button">MOVE</button>
         </div>
         <div class="cp-log" id="cp-log" aria-label="move log"></div>
@@ -231,6 +237,10 @@
             <div class="norad-status-line" id="norad-status-top">
               PRIMARY ACCESS CODE — DECRYPTION IN PROGRESS
             </div>
+
+            <!-- Narration routed from the bedroom script (NORAD-POV lines live here, not in
+                 David's terminal). See engine.onNoradLine / DESIGN-IDEA-NORAD-SCENE.md §2. -->
+            <div class="norad-narration" id="norad-narration" aria-live="polite"></div>
 
             <!-- The wall-sized launch-code readout. Cells are injected by js/norad.js. -->
             <div class="norad-readout" id="norad-readout" aria-live="off"></div>

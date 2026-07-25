@@ -24,9 +24,12 @@ export const DIALOGUE = {
   cold_open: {
     clear: true,
     lines: [
-      { text: '{{ORG}} — STRATEGIC MONITORING FLOOR', cls: 'narrator' },
-      { text: '03:41 LOCAL. The big board glows over rows of empty coffee cups.', cls: 'narrator' },
-      { text: 'An officer\u2019s voice, quiet: "Confidence is high. It always is."', cls: 'narrator' },
+      // These three are NORAD-floor POV: routed to the NORAD big board (a brief cutaway in
+      // single-screen, or the docked/remote NORAD screen in split/multi) rather than typed
+      // into David's bedroom terminal. See engine._runScripted + DESIGN-IDEA-NORAD-SCENE.md §2.
+      { text: '{{ORG}} — STRATEGIC MONITORING FLOOR', cls: 'narrator', scene: 'norad' },
+      { text: '03:41 LOCAL. The big board glows over rows of empty coffee cups.', cls: 'narrator', scene: 'norad' },
+      { text: 'An officer\u2019s voice, quiet: "Confidence is high. It always is."', cls: 'narrator', scene: 'norad' },
       { text: '', cls: 'narrator' },
       { text: 'Somewhere else, a modem screams a single dial tone into the dark.', cls: 'narrator' },
       { text: 'You are not supposed to be here. Neither is what answers.', cls: 'narrator' },
