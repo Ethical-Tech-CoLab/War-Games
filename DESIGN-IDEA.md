@@ -332,3 +332,14 @@ visual opposite of the terminal. Recommended next steps there: **scripted cutawa
 beats (the parallel-worlds dramatic irony) and an optional **split-screen** view for the
 climax. See that doc for options, the font strategy, and the linking recommendations.
 
+### Companion scene study — launch-control cold open
+
+An **opening launch-capsule scene** (two crew, two keys, a two-person turn-key failsafe, one
+unverifiable order) is designed in
+[LAUNCH-ROOM-SCENE-DESIGN.md](LAUNCH-ROOM-SCENE-DESIGN.md). It sets the human stakes before the
+teenager-at-a-keyboard story and pivots on "the humans are the unreliable part" into the
+introduction of `{{SYSTEM}}` / `{{PERSONA}}`. Recommended: ship **Option A ("WITNESS")** — a
+≤90s paced cold open with a single countdown key-turn choice — as the default and **A/B
+baseline**, growable to the fuller **checklist** and **two-keys** variants, with an always-on
+**skip** and a seamless `clear → LOGON:` hand-off into gameplay.
+

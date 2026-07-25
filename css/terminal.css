@@ -1129,17 +1129,18 @@ input:focus {
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  /* Cold steel war-room gradient — the opposite of the warm phosphor bedroom. */
+  /* Same phosphor-on-near-black register as the terminal (unified app style), laid out as a
+     big board. The wall-sized 14-segment readout stays the distinctive element. */
   background:
-    radial-gradient(120% 90% at 50% -10%, rgba(120, 170, 210, 0.14), transparent 60%),
-    linear-gradient(180deg, #0a1420 0%, #060c14 55%, #03070c 100%);
-  color: #cfe6f5;
+    radial-gradient(120% 90% at 50% -10%, rgba(51, 255, 102, 0.10), transparent 60%),
+    radial-gradient(ellipse at center, #041204 0%, #010601 100%);
+  color: var(--fg);
   font-family: var(--font);
   overflow: hidden;
-  --norad-accent: #9fe3ff;   /* cold cyan-white readout */
-  --norad-dim: #1f3a52;      /* unlit segment ghost */
-  --norad-amber: #ffbf3c;
-  --norad-red: #ff4d4d;
+  --norad-accent: var(--fg-bright); /* phosphor-green readout, matching the board/terminal */
+  --norad-dim: #143a1f;             /* unlit segment ghost (dim green) */
+  --norad-amber: var(--amber);
+  --norad-red: var(--red);
 }
 
 /* Faint reference grid + scanlines so it reads as a projected big board, not an app. */
@@ -1149,8 +1150,8 @@ input:focus {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(120, 170, 210, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 170, 210, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(51, 255, 102, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 255, 102, 0.05) 1px, transparent 1px);
   background-size: 44px 44px;
   opacity: 0.6;
 }
@@ -1177,7 +1178,7 @@ input:focus {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(159, 227, 255, 0.25);
+  border-bottom: 1px solid var(--fg-dim);
   padding-bottom: 10px;
 }
 .norad-titles {
@@ -1189,13 +1190,13 @@ input:focus {
   font-size: clamp(1rem, 2.4vw, 1.8rem);
   font-weight: bold;
   letter-spacing: 6px;
-  color: #eaf6ff;
-  text-shadow: 0 0 12px rgba(159, 227, 255, 0.5);
+  color: var(--fg-bright);
+  text-shadow: 0 0 12px rgba(51, 255, 102, 0.6);
 }
 .norad-subtitle {
   font-size: clamp(0.7rem, 1.4vw, 0.95rem);
   letter-spacing: 4px;
-  color: var(--norad-amber);
+  color: var(--amber);
 }
 .norad-head-right {
   display: flex;
@@ -1210,21 +1211,17 @@ input:focus {
 }
 .norad-defcon-label {
   font-size: 0.7rem;
-  color: #8fb6cf;
+  color: var(--fg-dim);
 }
 .norad-defcon-value {
   font-size: clamp(1.2rem, 2.6vw, 2rem);
   font-weight: bold;
-  color: var(--norad-amber);
-  text-shadow: 0 0 12px rgba(255, 191, 60, 0.45);
+  color: var(--fg-bright);
+  text-shadow: 0 0 12px rgba(51, 255, 102, 0.5);
 }
-/* Recolor the shared ghost button for the cold palette. */
+/* The shared ghost button already carries the app style; no cold override needed. */
 .norad-close {
-  color: #cfe6f5;
-  border-color: rgba(159, 227, 255, 0.4);
-}
-.norad-close:hover {
-  background: rgba(159, 227, 255, 0.12);
+  align-self: center;
 }
 
 .norad-body {
@@ -1240,7 +1237,7 @@ input:focus {
 .norad-status-line {
   letter-spacing: 4px;
   font-size: clamp(0.65rem, 1.3vw, 0.9rem);
-  color: #8fb6cf;
+  color: var(--fg-dim);
   text-transform: uppercase;
 }
 .norad-status-bottom {
@@ -1255,11 +1252,11 @@ input:focus {
   flex-direction: column;
   gap: 8px;
   max-width: 88%;
-  color: #cfe6f5;
+  color: var(--fg-bright);
   font-size: clamp(0.95rem, 2.2vw, 1.7rem);
   line-height: 1.5;
   letter-spacing: 1px;
-  text-shadow: 0 0 12px rgba(159, 227, 255, 0.35);
+  text-shadow: 0 0 12px rgba(51, 255, 102, 0.35);
 }
 .norad-scene.narrating .norad-narration {
   display: flex;
@@ -1285,10 +1282,10 @@ input:focus {
   justify-content: center;
   gap: clamp(4px, 1.4vw, 18px);
   padding: clamp(10px, 2.4vh, 26px) clamp(10px, 2vw, 30px);
-  border: 1px solid rgba(159, 227, 255, 0.25);
+  border: 1px solid var(--fg-dim);
   border-radius: 6px;
-  background: rgba(4, 12, 20, 0.7);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.7), 0 0 24px rgba(159, 227, 255, 0.08);
+  background: rgba(2, 12, 2, 0.7);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.7), 0 0 24px rgba(51, 255, 102, 0.08);
   max-width: 96%;
 }
 .norad-group {
@@ -1308,7 +1305,7 @@ input:focus {
   text-align: center;
   color: var(--norad-accent);
   /* Rolling (unsolved) cells glow softly and flicker via animation. */
-  text-shadow: 0 0 10px rgba(159, 227, 255, 0.55), 0 0 26px rgba(159, 227, 255, 0.25);
+  text-shadow: 0 0 10px rgba(51, 255, 102, 0.55), 0 0 26px rgba(51, 255, 102, 0.25);
   transition: color 0.15s ease, text-shadow 0.15s ease;
 }
 /* Ghost "unlit segments" behind each cell so unsolved cells read as a real segment display.
@@ -1324,11 +1321,11 @@ input:focus {
 }
 .norad-cell.rolling {
   animation: noradRoll 0.09s steps(1) infinite;
-  color: #bfeeff;
+  color: #cfffe0;
 }
 .norad-cell.locked {
-  color: #eaffff;
-  text-shadow: 0 0 14px rgba(159, 227, 255, 0.9), 0 0 34px rgba(159, 227, 255, 0.45);
+  color: #eaffee;
+  text-shadow: 0 0 14px rgba(51, 255, 102, 0.9), 0 0 34px rgba(51, 255, 102, 0.45);
 }
 .norad-cell.flash {
   animation: noradLock 0.35s ease-out 1;
@@ -1340,7 +1337,7 @@ input:focus {
 }
 @keyframes noradLock {
   0% { color: #ffffff; text-shadow: 0 0 40px rgba(255, 255, 255, 0.95); transform: scale(1.12); }
-  100% { color: #eaffff; transform: scale(1); }
+  100% { color: #eaffee; transform: scale(1); }
 }
 
 .norad-meta {
@@ -1361,11 +1358,11 @@ input:focus {
 .norad-meta-label {
   font-size: 0.62rem;
   letter-spacing: 3px;
-  color: #7fa4bd;
+  color: var(--fg-dim);
 }
 .norad-meta-value {
   font-size: clamp(0.9rem, 1.8vw, 1.2rem);
-  color: #eaf6ff;
+  color: var(--fg-bright);
 }
 .norad-clock {
   display: flex;
