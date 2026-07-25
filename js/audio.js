@@ -201,17 +201,19 @@ const PHONETIC = {
 // Initialisms that must be spelled out even though a naive reader might say them as a word
 // (or that are 3+ letters). Extend this as new cases surface.
 const SPELL_ALWAYS = new Set([
-  'US', 'USA', 'USSR', 'USB', 'UK', 'UN', 'EU', 'UAE',
+  'USA', 'USSR', 'USB', 'UK', 'UN', 'EU', 'UAE',
   'AI', 'ID', 'PC', 'TV', 'OS', 'IP', 'PR', 'HR', 'CEO', 'CTO',
   'CPU', 'GPU', 'RAM', 'GPS', 'DNA', 'ICBM', 'SLBM', 'FBI', 'CIA', 'NSA', 'KGB',
   'HTTP', 'HTTPS', 'URL', 'API', 'LLM', 'UI', 'UX', 'QA',
 ]);
 
-// Real 2-letter words to PRESERVE (never spell out), because they read as words.
+// Real 2-letter words to PRESERVE (never spell out), because they read as words. "US" lives
+// here on purpose: in dialogue it almost always means the pronoun "us" (/uhss/), not the
+// nation — the dotted "U.S." form is still spelled out by the dotted-initialism rule above.
 const KEEP_TWO_LETTER = new Set([
   'AM', 'AN', 'AS', 'AT', 'AH', 'AW', 'AY', 'BE', 'BY', 'DO', 'GO', 'HA', 'HE',
   'HI', 'HM', 'HO', 'IF', 'IN', 'IS', 'IT', 'MA', 'ME', 'MY', 'NO', 'OF', 'OH',
-  'OK', 'ON', 'OR', 'OW', 'OX', 'PA', 'SO', 'TO', 'UH', 'UM', 'UP', 'WE', 'YE', 'YO',
+  'OK', 'ON', 'OR', 'OW', 'OX', 'PA', 'SO', 'TO', 'UH', 'UM', 'UP', 'US', 'WE', 'YE', 'YO',
 ]);
 
 function spellToken(letters) {
@@ -243,9 +245,9 @@ export function spellAcronyms(text) {
 const SPOKEN_FIXES = [
   [/\bpac[-\s]?man\b/gi, 'pack man'],
   [/\bdino\b/gi, 'dyno'],
-  // Standalone letter/word "a" -> long A ("aaa"), so the voice never mumbles it as a schwa
-  // (e.g. chess file "A 2" and the article "a" both read as the clear long vowel).
-  [/\ba\b/gi, 'aaa'],
+  // Standalone letter/word "a" -> long A ("ay", the letter-name /ei/), so the voice never
+  // mumbles it as a schwa (e.g. chess file "A 2" and the article "a" read as the clear vowel).
+  [/\ba\b/gi, 'ay'],
   [/\bwe['\u2019]re\b/gi, 'we are'],
   [/\byou['\u2019]re\b/gi, 'you are'],
   [/\bthey['\u2019]re\b/gi, 'they are'],
