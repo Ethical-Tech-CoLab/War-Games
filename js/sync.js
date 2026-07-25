@@ -169,8 +169,19 @@ export class SyncSession {
   static async joinByRoom(room, { alignUrl, syncBase = '' } = {}) {
     const base = String(syncBase).replace(/\/$/, '');
     const code = String(room).trim().toUpperCase();
-    const res = await fetch(`${base}/sync/${encodeURIComponent(code)}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Room "${code}" is not live. Enable LIVE SYNC on the first device.`);
+    const url = `${base}/sync/${encodeURIComponent(code)}`;
+    let res;
+    try {
+      res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' });
+    } catch (e) {
+      throw new Error(`Can't reach the sync endpoint (${url}): ${e.message}. Is the room's host online?`);
+    }
+    if (res.status === 404) {
+      throw new Error(`Room "${code}" is not live. Start/keep the game running on the first device (checked ${url}).`);
+    }
+    if (!res.ok) {
+      throw new Error(`Room "${code}" fetch failed: HTTP ${res.status} at ${url}.`);
+    }
     const payload = await res.json();
     if (!payload.room) payload.room = code;
     return new SyncSession({ mode: 'medium', role: 'follower', payload, alignUrl, syncBase: base });
@@ -223,6 +234,11 @@ export class SyncSession {
   /** The room-scoped KV URL (same-origin dev server, or the proxy origin in production). */
   _syncUrl() {
     return `${this.syncBase}/sync/${encodeURIComponent(this.payload.room)}`;
+  }
+
+  /** Public accessor for the room KV URL (diagnostics/telemetry). */
+  syncUrl() {
+    return this._syncUrl();
   }
 
   /** Leader → server: merge a partial update into the SyncState and POST it. */

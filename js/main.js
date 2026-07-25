@@ -24,6 +24,7 @@ const els = {
   llmKey: document.getElementById('llm-key'),
   llmHint: document.getElementById('llm-hint'),
   startBtn: document.getElementById('start-btn'),
+  introToggle: document.getElementById('intro-toggle'),
   statusbar: document.getElementById('statusbar'),
   terminal: document.getElementById('terminal'),
   modeBadge: document.getElementById('mode-badge'),
@@ -31,6 +32,7 @@ const els = {
 };
 
 const LLM_KEY_STORE = 'wargames.llm.apiKey';
+const INTRO_PREF_STORE = 'wargames.playIntro';
 const telemetry = new Telemetry(SETTINGS.telemetry);
 const audio = new AudioFx();
 const terminal = new Terminal(root);
@@ -223,13 +225,20 @@ els.startBtn.addEventListener('click', () => {
   }
   SETTINGS.mode = mode;
 
+  const playIntro = !!els.introToggle && els.introToggle.checked;
+  try {
+    localStorage.setItem(INTRO_PREF_STORE, playIntro ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+
   // Unlock audio here — this click is the required user gesture for WebAudio/speech.
   audio.unlock();
 
-  startGame({ names, nameSetKey, mode });
+  startGame({ names, nameSetKey, mode, playIntro });
 });
 
-async function startGame({ names, nameSetKey, mode }) {
+async function startGame({ names, nameSetKey, mode, playIntro = false }) {
   els.menuOverlay.hidden = true;
   els.statusbar.hidden = false;
   els.terminal.hidden = false;
@@ -256,7 +265,8 @@ async function startGame({ names, nameSetKey, mode }) {
   });
   startTelemetryTicker();
 
-  engine = new GameEngine({ terminal, telemetry, names, mode });
+  engine = new GameEngine({ terminal, telemetry, names, mode, playIntro });
+  telemetry.event('intro_arm', { playIntro });
   // Bridge the runtime session to the broadcast room AND (in split view) the local NORAD
   // board, so DEFCON/progress/phase drive every connected screen (§7/§8, #1/#3a).
   engine.onState = (s) => {
@@ -518,6 +528,18 @@ function broadcastLine(text, cls) {
   linePubTimer = setTimeout(() => { if (liveSession) liveSession.publish({}); }, 600);
 }
 
+// Sync diagnostics: log to console + telemetry so a failed room fetch is debuggable (#3).
+let lastSyncDiag = '';
+function syncDiag(msg, detail = {}) {
+  lastSyncDiag = msg;
+  console.warn(`[sync] ${msg}`, detail);
+  try {
+    telemetry.event('sync_diag', { msg, ...detail });
+  } catch {
+    /* telemetry optional */
+  }
+}
+
 // Create the always-on broadcast for this game (called from startGame). One stable room so any
 // number of NORAD/BEDROOM screens can join at any time — useful for takeover events.
 async function initBroadcast() {
@@ -537,22 +559,56 @@ async function initBroadcast() {
   } catch {
     /* offline: the room code still shows, but remote joining needs the /sync endpoint */
   }
-  updateRoomBadge();
+  updateRoomBadge(null); // "connecting…" until verified
+
+  // Publish the initial state AND verify it round-trips, so we can tell (and show) whether the
+  // /sync endpoint is actually reachable — the usual cause of "room not live" join failures is
+  // that /sync only exists on the dev server, not on a static host without the proxy.
+  const url = liveSession.syncUrl();
+  let ok = false;
   try {
-    if (engine) engine.emitState();
-    else await liveSession.publish({ status: 'armed' });
-  } catch {
-    /* best-effort */
+    await liveSession.publish({
+      status: 'running',
+      defcon: engine ? engine.defcon : 5,
+      progress: 0,
+      phase: 'first_contact',
+    });
+    const res = await fetch(`${url}?_=${Date.now()}`, { cache: 'no-store' });
+    ok = res.ok;
+    syncDiag(`broadcast ${ok ? 'LIVE' : 'NOT STORED'} @ ${url} (HTTP ${res.status})`, {
+      room: liveSession.payload.room,
+      syncBase: liveSession.syncBase || '(same-origin)',
+      status: res.status,
+      ok,
+    });
+  } catch (e) {
+    syncDiag(`broadcast UNREACHABLE @ ${url}: ${e.message}`, {
+      room: liveSession.payload.room,
+      syncBase: liveSession.syncBase || '(same-origin)',
+      error: String(e.message),
+    });
   }
+  liveSession.reachable = ok;
+  updateRoomBadge(ok);
 }
 
-function updateRoomBadge() {
+// ok: true = verified live, false = endpoint unreachable, null = checking.
+function updateRoomBadge(ok = liveSession ? liveSession.reachable : undefined) {
   if (!roomEls.badge) return;
-  if (liveSession) {
-    roomEls.badge.textContent = `ROOM ${liveSession.payload.room}`;
-    roomEls.badge.hidden = false;
-  } else {
+  if (!liveSession) {
     roomEls.badge.hidden = true;
+    return;
+  }
+  const room = liveSession.payload.room;
+  roomEls.badge.hidden = false;
+  if (ok === false) {
+    roomEls.badge.textContent = `ROOM ${room} (OFFLINE)`;
+    roomEls.badge.classList.add('offline');
+    roomEls.badge.title = `Sync endpoint unreachable at ${liveSession.syncUrl()}. Other screens can't join until /sync is reachable (dev server or the proxy). ${lastSyncDiag}`;
+  } else {
+    roomEls.badge.textContent = ok === null ? `ROOM ${room}\u2026` : `ROOM ${room}`;
+    roomEls.badge.classList.remove('offline');
+    roomEls.badge.title = `This game's room code — click to pair screens. ${lastSyncDiag}`;
   }
 }
 
@@ -793,6 +849,13 @@ els.restartBtn.addEventListener('click', () => {
 // ---------- Init ----------
 populateNameSets();
 prefillLlmFields();
+// Restore the launch-control intro preference.
+try {
+  const v = localStorage.getItem(INTRO_PREF_STORE);
+  if (v !== null && els.introToggle) els.introToggle.checked = v === '1';
+} catch {
+  /* ignore */
+}
 loadProxyDiscovery();
 maybeBootstrapFollower();
 // Reflect the film title token in the menu subtitle if desired later via applyNames.

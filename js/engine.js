@@ -8,11 +8,12 @@ import { applyNames, SETTINGS } from './config.js';
 import { LLMClient, buildBerserkPrompt } from './llm.js';
 
 export class GameEngine {
-  constructor({ terminal, telemetry, names, mode }) {
+  constructor({ terminal, telemetry, names, mode, playIntro = false }) {
     this.term = terminal;
     this.telemetry = telemetry;
     this.names = names;
     this.mode = mode; // 'scripted' | 'llm'
+    this.playIntro = playIntro; // WITNESS launch-control cold open (LAUNCH-ROOM-SCENE-DESIGN.md)
     this.defcon = SETTINGS.defconStart;
     this._berserkLineCap = 4; // berserk reply cap; Prof Rhodes can lift it at runtime
     // Multi-device coupling hook: when set, the engine publishes a SessionState on every
@@ -76,11 +77,100 @@ export class GameEngine {
   async start() {
     SETTINGS.ui.sessionTone = 'normal';
     this._setDefcon(SETTINGS.defconStart);
+    if (this.playIntro) await this._runWitnessIntro();
     if (this.mode === 'llm') {
       await this._runLLM();
     } else {
       await this._runScripted();
     }
+  }
+
+  // ---------- WITNESS launch-control cold open (LAUNCH-ROOM-SCENE-DESIGN.md, Option A) ----------
+  // A short, claustrophobic two-hander in a sealed launch capsule that ends on a timed
+  // key-turn choice, then pivots to "take the people out of the loop" and hands off to the
+  // normal boot. All text is original; tokens theme it to the active identity set. Skippable.
+  async _runWitnessIntro() {
+    const skip = this._setupIntroSkip();
+    const beat = async (text, cls = 'narrator', pause = 500) => {
+      if (this._introAborted) return;
+      await this.term.typeLine(this._t(text), cls);
+      if (!this._introAborted && pause) await sleep(pause);
+    };
+
+    this.term.clear();
+    await beat('[ {{ORG}} LAUNCH CONTROL \u2014 CAPSULE SEALED. 47 METERS OF ROCK ABOVE YOU. ]', 'alert', 700);
+    await beat('Two crew. Two stations, too far apart to reach both. Two keys. That is the whole safeguard.', 'narrator', 700);
+    await beat('COMMANDER: "Coffee\u2019s cold. Everything\u2019s quiet. It always is."', 'narrator', 600);
+    await beat('YOU ARE THE DEPUTY. Your job is to be the second yes \u2014 or the last no.', 'narrator', 800);
+    if (this._introAborted) return this._endIntro();
+
+    await beat('', 'system', 0);
+    await beat('*** EMERGENCY ACTION MESSAGE \u2014 INBOUND ***', 'critical', 500);
+    await beat('AUTHENTICATING\u2026', 'system', 700);
+    await beat('AUTHENTICATION: MATCH. THE ORDER IS VALID. THE ORDER IS TO LAUNCH.', 'critical', 700);
+    await beat('COMMANDER: "It\u2019s authenticated. We turn together. On my mark."', 'alert', 500);
+    await beat('Nothing in this room can tell you whether the war is real, a drill, or a machine\u2019s bad dream.', 'narrator', 700);
+    if (this._introAborted) return this._endIntro();
+
+    await beat('COMMANDER: "Keys in. Ready\u2026 MARK."', 'alert', 300);
+
+    const { index, timedOut } = await this.term.chooseTimed(
+      [
+        { label: 'TURN YOUR KEY' },
+        { label: 'REFUSE \u2014 HANDS OFF THE KEY' },
+      ],
+      { seconds: 12, defaultIdx: 1 }
+    );
+    if (this._introAborted) return this._endIntro();
+
+    const choice = timedOut ? 'timeout' : index === 0 ? 'turned' : 'refused';
+    this.telemetry.event('witness_choice', { choice });
+
+    await beat('', 'system', 0);
+    if (choice === 'turned') {
+      await beat('Both keys turn. A relay closes somewhere with a sound like a coin dropping.', 'narrator', 500);
+      await beat('LAUNCH ENABLED.', 'critical', 900);
+      await beat('You did your job. That is the part that will keep you up.', 'narrator', 800);
+    } else if (choice === 'refused') {
+      await beat('Your hand stays flat on the console. The Commander stares at you. Then at the sidearm.', 'alert', 700);
+      await beat('The moment stretches. Somewhere up the chain, a light stays red that should have gone green.', 'narrator', 800);
+      await beat('You refused. Doctrine has a word for that, and it is not a kind one.', 'narrator', 800);
+    } else {
+      await beat('You freeze. The count runs out. The Commander makes the call without you.', 'alert', 700);
+      await beat('Hesitation is its own answer. It gets logged, and it gets noticed.', 'narrator', 800);
+    }
+    if (this._introAborted) return this._endIntro();
+
+    await beat('', 'system', 0);
+    await beat('WEEKS LATER, A BRIEFING ROOM. {{CREATOR}}, quietly certain:', 'narrator', 500);
+    await beat('"The keys, the crews, the hesitation \u2014 that is the weak link. Take the people out of the loop.', 'echo', 400);
+    await beat(' Let {{SYSTEM}} decide. It will not flinch. It will not grieve. It will simply be right."', 'echo', 1000);
+
+    this._endIntro();
+  }
+
+  _setupIntroSkip() {
+    this._introAborted = false;
+    const host = document.getElementById('terminal') || document.body;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ghost-btn intro-skip';
+    btn.textContent = 'SKIP INTRO \u25B8';
+    btn.addEventListener('click', () => {
+      this._introAborted = true;
+      this.term.cancelActiveChoice(1); // unstick a pending timed choice
+    });
+    host.appendChild(btn);
+    this._introSkipBtn = btn;
+    return btn;
+  }
+
+  _endIntro() {
+    if (this._introSkipBtn) {
+      this._introSkipBtn.remove();
+      this._introSkipBtn = null;
+    }
+    this.term.clear();
   }
 
   // ---------- Scripted mode ----------

@@ -221,6 +221,74 @@ export class Terminal {
   }
 
   /**
+   * A tense, timed choice: options appear instantly under a live countdown; resolves with
+   * { index, timedOut } — on timeout it auto-picks defaultIdx. Cancelable via
+   * cancelActiveChoice() (used by the intro SKIP). Number keys / clicks also pick.
+   */
+  chooseTimed(choices, { seconds = 12, defaultIdx = choices.length - 1, onTick } = {}) {
+    this.choicesEl.innerHTML = '';
+    return new Promise((resolve) => {
+      let remaining = seconds;
+      let timer = null;
+      const finish = (index, timedOut) => {
+        document.removeEventListener('keydown', onKey);
+        clearInterval(timer);
+        this._activeChoiceCancel = null;
+        this.choicesEl.innerHTML = '';
+        this.hideInput();
+        resolve({ index, timedOut });
+      };
+      const onKey = (e) => {
+        if (document.activeElement === this.textInput) return;
+        const n = Number(e.key);
+        if (n >= 1 && n <= choices.length) finish(n - 1, false);
+      };
+      document.addEventListener('keydown', onKey);
+      this._activeChoiceCancel = (index) => finish(index, false);
+
+      const clockLine = document.createElement('div');
+      clockLine.className = 'line alert';
+      this.output.appendChild(clockLine);
+      const renderClock = () => {
+        clockLine.textContent = `> ${String(Math.max(0, remaining)).padStart(2, '0')} SECONDS TO COMPLY`;
+      };
+      renderClock();
+
+      choices.forEach((c, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.type = 'button';
+        const num = document.createElement('span');
+        num.className = 'num';
+        num.textContent = `${idx + 1}.`;
+        const lbl = document.createElement('span');
+        lbl.className = 'lbl';
+        lbl.textContent = c.label;
+        btn.append(num, document.createTextNode(' '), lbl);
+        btn.addEventListener('click', () => finish(idx, false));
+        this.choicesEl.appendChild(btn);
+      });
+      this._scroll();
+
+      timer = setInterval(() => {
+        remaining -= 1;
+        if (onTick) onTick(remaining);
+        if (remaining <= 0) {
+          clockLine.textContent = '> TIME EXPIRED';
+          finish(defaultIdx, true);
+          return;
+        }
+        renderClock();
+      }, 1000);
+    });
+  }
+
+  /** Force-resolve an active chooseTimed (e.g. the SKIP button). No-op if none active. */
+  cancelActiveChoice(index = 0) {
+    if (this._activeChoiceCancel) this._activeChoiceCancel(index);
+  }
+
+  /**
    * Show a persistent, typeable input line; resolve with the entered string.
    * The typed line is echoed exactly once (here), so callers must NOT echo again.
    * @param {string} placeholder hint text shown in the input

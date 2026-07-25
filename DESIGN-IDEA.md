@@ -258,13 +258,17 @@ A tight, complete, ~10–15 minute experience:
 
 ## 7. Open Questions for the Next Step
 
-Answering these will lock the build plan:
+> **All resolved** — the build answered every one of these. Kept for the record; see §9 for
+> the shipped state.
 
-1. **Platform:** Web (shareable link, CRT aesthetic) or desktop TUI?
-2. **Determinism:** Hand-authored branching dialogue (safe, predictable) or LLM-driven JOSHUA (dynamic, modern, riskier)?
-3. **Era:** Faithful 1983 homage, or the modern AI-agent reframe (Option D), or a blend?
-4. **Length:** Vertical slice (§5) first, or go straight for a fuller experience?
-5. **Names/IP:** Original homage names from the start, or prototype with film names and rename later?
+1. **Platform:** ✅ **Web** (GitHub Pages, CRT aesthetic) — shareable link, no install.
+2. **Determinism:** ✅ **Both** — hand-authored branching dialogue *and* an LLM-driven persona,
+   with graceful fallback to scripted when AI is unavailable.
+3. **Era:** ✅ **A blend** — faithful 1983 homage with the modern AI-agent reframe folded in.
+4. **Length:** ✅ Shipped the **vertical slice** first; it then grew (chess, NORAD scene,
+   multi-device broadcast, launch-control intro).
+5. **Names/IP:** ✅ Prototyping with **film names** behind a 4-set `{{token}}` re-skin; an
+   original set for public release remains the one open IP task (roadmap P1, [#3]).
 
 ---
 
@@ -305,6 +309,24 @@ release). This section is the living backlog — synced to
   type / **voice** input, tone-aware canned commentary, and spoken move announcements.
 - ✅ **Retro polish** — CRT terminal, monitor bezel, monochrome scanline chess board,
   uppercase machine voice, and TTS pronunciation fixes.
+- ✅ **NORAD big-board scene** — a swappable full-screen launch-code brute-force with a
+  14-segment readout that solves cells in random order against a countdown; couples to the
+  live session (DEFCON/progress-driven "ticks", reserve held until the climax). See
+  [DESIGN-IDEA-NORAD-SCENE.md](DESIGN-IDEA-NORAD-SCENE.md).
+- ✅ **Multi-device broadcast** — every game publishes a **ROOM code** over a proxy `/sync` KV;
+  other screens **join by room** and pick a **scene** (NORAD board or a read-only BEDROOM
+  transcript mirror). Easy (deterministic) + Medium (live) sync tiers; clock offset via
+  Cristian's algorithm; a room badge with reachability diagnostics.
+- ✅ **Viewer modes** — **Single / Split / Multi** toggle (split docks the NORAD board beside
+  the terminal; multi surfaces the room code for remote joiners).
+- ✅ **NORAD-POV routing** — cold-open war-room lines play on the NORAD scene, not David's
+  terminal.
+- ✅ **Launch-control intro ("WITNESS")** — a skippable ~90s two-key cold open with a timed
+  key-turn choice, remembered toggle, and telemetry (`intro_arm` / `witness_choice`) for A/B.
+  See [LAUNCH-ROOM-SCENE-DESIGN.md](LAUNCH-ROOM-SCENE-DESIGN.md).
+- ✅ **Unified app style** — one phosphor-green treatment (border/text/buttons) across the
+  opening menu, status bar, NORAD scene, and split view; shared `--btn-h`/`--btn-font`
+  buttons; retro `VT323` opener headings; responsive chess board (phones → Surface Hubs).
 
 ### Next phases (prioritized — most compelling first)
 
@@ -312,14 +334,15 @@ release). This section is the living backlog — synced to
 |-----|------|-------|
 | **P1** | Educational mode — guided lesson + debrief (leans into the educational-tool framing) | [#2](https://github.com/Ethical-Tech-CoLab/War-Games/issues/2) |
 | **P1** | Public-release re-skin — default to an original name set (IP; see §6) | [#3](https://github.com/Ethical-Tech-CoLab/War-Games/issues/3) |
-| **P1** | Stable proxy endpoint — named Cloudflare tunnel (durable hostname) | [#4](https://github.com/Ethical-Tech-CoLab/War-Games/issues/4) |
-| **P2** | Accessibility & mobile polish (keyboard nav, ARIA, reduced-motion, responsive) | [#5](https://github.com/Ethical-Tech-CoLab/War-Games/issues/5) |
+| **P1** | Stable proxy endpoint — named Cloudflare tunnel (durable hostname) **+ add the `/sync` KV to the proxy** so rooms work off the dev server | [#4](https://github.com/Ethical-Tech-CoLab/War-Games/issues/4) |
+| **P2** | 🟡 Accessibility & mobile polish — *partly done* (responsive chess board, wrapping status bar, reduced-motion, room-code join); remaining: full keyboard nav + ARIA pass | [#5](https://github.com/Ethical-Tech-CoLab/War-Games/issues/5) |
 | **P2** | Chess enhancements — difficulty, SAN, underpromotion, draw claims | [#6](https://github.com/Ethical-Tech-CoLab/War-Games/issues/6) |
 | **P2** | Model picker auto-populated from proxy `/config` | [#7](https://github.com/Ethical-Tech-CoLab/War-Games/issues/7) |
 
-**Later (P3, not yet issues):** narrative/branch expansion beyond the core scenario;
-save/resume + shareable session results; optional (rare, windowed) LLM chess commentary;
-more identity sets; a written case study of the build.
+**Later (P3, not yet issues):** promote multi-device sync to the **Hard (SSE) tier**; A/B
+report on the launch-control intro's effect on engagement; narrative/branch expansion beyond
+the core scenario; save/resume + shareable session results; optional (rare, windowed) LLM
+chess commentary; more identity sets; a written case study of the build.
 
 ### Companion scene study — NORAD "big board"
 

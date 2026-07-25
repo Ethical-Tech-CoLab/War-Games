@@ -6,6 +6,10 @@
     <link rel="icon" type="image/png" sizes="256x256" href="etc-icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SHALL WE PLAY A GAME?</title>
+    <!-- Old-school CRT display font (VT323, SIL OFL) for the opening screen headings. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap" />
     <link rel="stylesheet" href="css/terminal.css" />
   </head>
   <body>
@@ -84,6 +88,11 @@
           </div>
 
           <button class="primary-btn" id="start-btn" type="button">CONNECT</button>
+
+          <label class="intro-toggle">
+            <input type="checkbox" id="intro-toggle" checked />
+            <span>Play the launch-control intro (a ~90-second cold open before the game)</span>
+          </label>
 
           <!-- Second-screen join: type a short ROOM code (from the other device's PAIR panel
                or the ROOM badge) and pick which scene this screen follows. -->
