@@ -112,6 +112,7 @@ export class ChessPanel {
     this.lastMove = null; // {from,to}
     this.thinking = false;
     this._longCooldown = 0; // plies to wait before the next long gloat/coach line
+    this._gen = 0; // bumped on new game / close so stale scheduled AI moves are dropped
     // Voice input (Web Speech API — Chrome/Edge). Feature-detected.
     this.SR = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
     this.recognition = null;
@@ -130,10 +131,17 @@ export class ChessPanel {
     this.root.classList.add('chess-open');
     this.render();
     this.el.move.focus();
+    // If we reopen while it is the machine's turn (e.g. closed mid-think), resume its move
+    // so the game can never soft-lock waiting on a turn that will never come.
+    const aiColor = this.playerColor === 'w' ? 'b' : 'w';
+    const st = statusOf(this.state);
+    if (this.state.turn === aiColor && st !== 'checkmate' && st !== 'stalemate') this._aiTurn();
   }
   close() {
     this.el.panel.hidden = true;
     this.root.classList.remove('chess-open');
+    this.thinking = false;
+    this._gen += 1; // invalidate any AI move still scheduled from this game
     this._stopVoice();
   }
   toggle() {
@@ -143,6 +151,7 @@ export class ChessPanel {
 
   newGame(playerColor = this.playerColor) {
     this.playerColor = playerColor;
+    this._gen += 1; // invalidate any AI move scheduled from the previous game
     this.state = initialState();
     this.selected = null;
     this.targets = [];
@@ -320,7 +329,10 @@ export class ChessPanel {
   }
 
   _submitText() {
-    if (this.thinking || this.state.turn !== this.playerColor) return;
+    if (this.thinking || this.state.turn !== this.playerColor) {
+      this._status(this.thinking ? `${this.persona} is thinking\u2026 one moment.` : 'Wait \u2014 not your turn yet.');
+      return;
+    }
     const mv = parseMove(this.state, this.el.move.value);
     if (!mv) {
       this._status('Illegal or unparsed move — try e.g. e2e4');
@@ -476,17 +488,26 @@ export class ChessPanel {
   }
 
   _aiTurn() {
+    if (this.thinking) return; // already searching — never queue a second AI move
+    const aiColor = this.playerColor === 'w' ? 'b' : 'w';
+    if (this.state.turn !== aiColor) return; // only ever move on the machine's turn
+    const st = statusOf(this.state);
+    if (st === 'checkmate' || st === 'stalemate') return;
+    const gen = this._gen;
     this.thinking = true;
     this.render();
     // Defer so the "thinking" status paints before the (blocking) search runs.
     setTimeout(() => {
-      const mv = aiMove(this.state, this.depth);
-      this.thinking = false;
-      if (mv) {
-        this._commit(mv, 'ai');
-      } else {
-        this.render();
+      if (gen !== this._gen) return; // a new game / close happened; drop this stale turn
+      let mv = null;
+      try {
+        mv = aiMove(this.state, this.depth);
+      } finally {
+        this.thinking = false; // ALWAYS clear, even if the search threw (no permanent lock)
       }
+      if (gen !== this._gen) return;
+      if (mv && this.state.turn === aiColor) this._commit(mv, 'ai');
+      else this.render();
     }, 60);
   }
 

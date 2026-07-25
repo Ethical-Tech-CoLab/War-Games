@@ -891,6 +891,7 @@ input:focus {
 .cp-board {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
   width: min(94%, 320px);
   aspect-ratio: 1;
   margin: 6px auto;
@@ -944,7 +945,27 @@ input:focus {
   gap: 6px;
   padding: 6px 12px;
 }
-.cp-move { flex: 1; }
+/* Match the old-school header buttons: transparent, dim border, same font + spacing.
+   Uses #cp-move so it outranks the global input[type="text"] rule. */
+#cp-move.cp-move {
+  flex: 1;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+}
+#cp-move.cp-move:focus {
+  outline: none;
+  border-color: var(--fg);
+  box-shadow: 0 0 8px rgba(51, 255, 102, 0.4);
+}
+#cp-move.cp-move::placeholder {
+  color: var(--fg-dim);
+  letter-spacing: 1px;
+}
 .cp-log {
   flex: 1;
   overflow-y: auto;
