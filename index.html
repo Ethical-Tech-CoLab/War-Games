@@ -23,6 +23,7 @@
         </div>
         <div class="status-right">
           <span class="mode-badge" id="mode-badge"></span>
+          <button class="ghost-btn" id="norad-btn" type="button" title="NORAD big board">NORAD</button>
           <button class="ghost-btn" id="chess-btn" type="button" title="Chess">&#9823;</button>
           <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
@@ -194,6 +195,56 @@
         </div>
         <div class="cp-log" id="cp-log" aria-label="move log"></div>
       </aside>
+
+      <!-- NORAD big board: a swappable, full-screen war-room scene. Dramatizes {{SYSTEM}} /
+           {{PERSONA}} brute-forcing the launch code on a wall-sized 14-segment display with a
+           countdown clock. Completely different visual register from the green terminal.
+           See DESIGN-IDEA-NORAD-SCENE.md. Hidden until the NORAD button is pressed. -->
+      <section class="norad-scene" id="norad-scene" aria-label="NORAD big board" hidden>
+        <div class="norad-frame">
+          <header class="norad-head">
+            <div class="norad-titles">
+              <span class="norad-org" id="norad-org">NORAD</span>
+              <span class="norad-subtitle" id="norad-subtitle">LAUNCH CODE SEQUENCE</span>
+            </div>
+            <div class="norad-head-right">
+              <div class="norad-defcon" id="norad-defcon" aria-label="DEFCON">
+                <span class="norad-defcon-label">DEFCON</span>
+                <span class="norad-defcon-value" id="norad-defcon-value">2</span>
+              </div>
+              <button class="ghost-btn norad-close" id="norad-close" type="button">CLOSE</button>
+            </div>
+          </header>
+
+          <div class="norad-body">
+            <div class="norad-status-line" id="norad-status-top">
+              PRIMARY ACCESS CODE — DECRYPTION IN PROGRESS
+            </div>
+
+            <!-- The wall-sized launch-code readout. Cells are injected by js/norad.js. -->
+            <div class="norad-readout" id="norad-readout" aria-live="off"></div>
+
+            <div class="norad-meta">
+              <div class="norad-meta-block">
+                <span class="norad-meta-label">CELLS SOLVED</span>
+                <span class="norad-meta-value" id="norad-solved">0 / 0</span>
+              </div>
+              <div class="norad-clock" id="norad-clock" aria-label="estimated time to sequence">
+                <span class="norad-clock-label">ESTIMATED TIME TO SEQUENCE</span>
+                <span class="norad-clock-value" id="norad-clock-value">--:--</span>
+              </div>
+              <div class="norad-meta-block norad-meta-right">
+                <span class="norad-meta-label">SYSTEM</span>
+                <span class="norad-meta-value" id="norad-system">WOPR / JOSHUA</span>
+              </div>
+            </div>
+
+            <div class="norad-status-line norad-status-bottom" id="norad-status-bottom">
+              STAND BY.
+            </div>
+          </div>
+        </div>
+      </section>
       </div>
       <!-- Monitor chin: fake brand plate + power LED for that 1983 feel -->
       <div class="monitor-chin" aria-hidden="true">

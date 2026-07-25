@@ -9,6 +9,7 @@ import { Telemetry } from './telemetry.js';
 import { GameEngine } from './engine.js';
 import { AudioFx } from './audio.js';
 import { ChessPanel } from './chess-ui.js';
+import { NoradScene } from './norad.js';
 
 const root = document.getElementById('crt');
 const els = {
@@ -34,6 +35,7 @@ const audio = new AudioFx();
 const terminal = new Terminal(root);
 terminal.setAudio(audio);
 const chess = new ChessPanel(root, { audio });
+const norad = new NoradScene(root);
 let chessStarted = false;
 let telemetryTimer = null;
 
@@ -231,6 +233,10 @@ async function startGame({ names, nameSetKey, mode }) {
   acResetPanel();
   root.classList.toggle('hide-ai-marker', SETTINGS.ui.aiMarker === false);
   chess.setPersona(names.PERSONA);
+  // Give the NORAD big board the active vocabulary + starting DEFCON so it reads as the
+  // same world as the terminal when the player peeks behind the curtain.
+  norad.names = names;
+  norad.setDefcon(SETTINGS.defconStart);
 
   const modeLabel = mode === 'llm' ? `LIVE AI · ${SETTINGS.llm.model}` : 'SCRIPTED';
   terminal.setMode(modeLabel);
@@ -423,6 +429,12 @@ document.getElementById('chess-btn').addEventListener('click', () => {
   } else {
     chess.close();
   }
+});
+
+// NORAD big board: a manual cutaway toggle (linking Option 1 in DESIGN-IDEA-NORAD-SCENE.md).
+// Opening restarts the brute-force animation; closing returns to the terminal in place.
+document.getElementById('norad-btn').addEventListener('click', () => {
+  norad.toggle();
 });
 
 els.restartBtn.addEventListener('click', () => {

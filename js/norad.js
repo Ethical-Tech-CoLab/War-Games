@@ -1,0 +1,307 @@
+// norad.js
+// A swappable, full-screen NORAD "big board" scene (see DESIGN-IDEA-NORAD-SCENE.md).
+//
+// It dramatizes the end-of-film crisis as a VISUAL: while the player thinks they are still
+// playing a game in the terminal, {{SYSTEM}} / {{PERSONA}} is brute-forcing the missile
+// launch code on a wall-sized 14-segment display, against a countdown clock. Individual
+// character cells roll through candidate glyphs and "lock" one at a time in RANDOM order
+// (never left-to-right) — that randomness is what sells "brute force" rather than "typing".
+//
+// This module owns three things: the readout (a row of rolling/locked cells), the lock
+// scheduler, and the countdown clock. It is UI-only and framework-free, matching the rest
+// of the codebase. Determinism note: the solve ORDER and the rolling glyphs are randomized
+// for feel, but the final code and total duration are fixed inputs, so a scripted beat can
+// rely on "this takes ~N seconds and ends in launch".
+
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const DIGITS = '0123456789';
+// Hexadecimal digits — used when a code position is flagged as hex (0-9 A-F), matching the
+// "flipping through specific hexadecimal digits" brief.
+const HEX = '0123456789ABCDEF';
+
+/** Fisher–Yates shuffle (returns a new array). */
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randOf(str) {
+  return str[Math.floor(Math.random() * str.length)];
+}
+
+function fmtClock(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export class NoradScene {
+  /**
+   * @param {HTMLElement} root  the .crt root element (used for scene classes)
+   * @param {object} opts
+   *   code       {string}   final launch code, e.g. 'CPE1704TKS' (spaces/dashes allowed → gaps)
+   *   mask       {string}   per-char class: 'L' letter, 'D' digit, 'H' hex, ' '/'-' gap.
+   *                         If omitted it is inferred from `code`.
+   *   crackMs    {number}   total time for the whole code to solve (default 45000)
+   *   rollMs     {number}   how fast unsolved cells cycle glyphs (default 70)
+   *   names      {object}   active name set (for {{ORG}}, {{SYSTEM}}, {{PERSONA}})
+   *   defcon     {number}   DEFCON value to display (kept in sync with the engine)
+   *   onComplete {function} called with 'launch' | 'abort' when the scene resolves
+   */
+  constructor(root, opts = {}) {
+    this.root = root;
+    this.el = {
+      scene: root.querySelector('#norad-scene'),
+      org: root.querySelector('#norad-org'),
+      subtitle: root.querySelector('#norad-subtitle'),
+      defconValue: root.querySelector('#norad-defcon-value'),
+      close: root.querySelector('#norad-close'),
+      statusTop: root.querySelector('#norad-status-top'),
+      readout: root.querySelector('#norad-readout'),
+      solved: root.querySelector('#norad-solved'),
+      clockValue: root.querySelector('#norad-clock-value'),
+      system: root.querySelector('#norad-system'),
+      statusBottom: root.querySelector('#norad-status-bottom'),
+    };
+
+    this.names = opts.names || null;
+    this.onComplete = opts.onComplete || null;
+    this.defcon = typeof opts.defcon === 'number' ? opts.defcon : 2;
+
+    this.code = (opts.code || 'CPE1704TKS').toUpperCase();
+    this.mask = opts.mask || this._inferMask(this.code);
+    this.crackMs = opts.crackMs || 45000;
+    this.rollMs = opts.rollMs || 70;
+
+    // Runtime state.
+    this.cells = []; // { el, target, kind ('L'|'D'|'H'), locked }
+    this.solveOrder = []; // indices into this.cells, random order
+    this.solvedCount = 0;
+    this.running = false;
+    this.gen = 0; // bumped on close/restart so stale timers no-op
+    this._rollTimer = null;
+    this._lockTimer = null;
+    this._clockTimer = null;
+
+    this._reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (this.el.close) this.el.close.addEventListener('click', () => this.close());
+  }
+
+  _t(text) {
+    if (!this.names) return text;
+    return String(text).replace(/\{\{(\w+)\}\}/g, (m, k) => this.names[k] ?? m);
+  }
+
+  /** Infer a mask from a code string: letters→L, digits→D, space/dash→gap. */
+  _inferMask(code) {
+    return code
+      .split('')
+      .map((ch) => {
+        if (ch === ' ' || ch === '-') return ' ';
+        if (/[0-9]/.test(ch)) return 'D';
+        return 'L';
+      })
+      .join('');
+  }
+
+  _charset(kind) {
+    if (kind === 'D') return DIGITS;
+    if (kind === 'H') return HEX;
+    return LETTERS;
+  }
+
+  /** Apply the active name-set vocabulary to the header/labels. */
+  _applyTheme() {
+    if (this.el.org) this.el.org.textContent = this._t('{{ORG}}');
+    if (this.el.system) this.el.system.textContent = this._t('{{SYSTEM}} / {{PERSONA}}');
+    if (this.el.subtitle) this.el.subtitle.textContent = 'LAUNCH CODE SEQUENCE';
+    if (this.el.statusTop) {
+      this.el.statusTop.textContent = this._t('{{PERSONA}} — PRIMARY LAUNCH CODE DECRYPTION IN PROGRESS');
+    }
+    this.setDefcon(this.defcon);
+  }
+
+  /** Keep the board's DEFCON readout in sync with the engine. */
+  setDefcon(value) {
+    this.defcon = value;
+    if (this.el.defconValue) this.el.defconValue.textContent = String(value);
+  }
+
+  /** Build the readout cells from code + mask. Groups are separated by gap columns. */
+  _buildReadout() {
+    const r = this.el.readout;
+    if (!r) return;
+    r.innerHTML = '';
+    this.cells = [];
+
+    let group = document.createElement('div');
+    group.className = 'norad-group';
+
+    for (let i = 0; i < this.code.length; i += 1) {
+      const kind = this.mask[i] || 'L';
+      const ch = this.code[i];
+      if (kind === ' ' || ch === ' ' || ch === '-') {
+        // flush current group, add a gap, start a new group
+        if (group.childNodes.length) r.appendChild(group);
+        const gap = document.createElement('div');
+        gap.className = 'norad-gap';
+        r.appendChild(gap);
+        group = document.createElement('div');
+        group.className = 'norad-group';
+        continue;
+      }
+      const cell = document.createElement('span');
+      cell.className = 'norad-cell rolling';
+      cell.textContent = randOf(this._charset(kind));
+      group.appendChild(cell);
+      this.cells.push({ el: cell, target: ch, kind, locked: false });
+    }
+    if (group.childNodes.length) r.appendChild(group);
+
+    this.solveOrder = shuffled(this.cells.map((_, idx) => idx));
+    this.solvedCount = 0;
+    this._updateSolved();
+  }
+
+  _updateSolved() {
+    if (this.el.solved) this.el.solved.textContent = `${this.solvedCount} / ${this.cells.length}`;
+  }
+
+  /** Open the scene and (re)start the crack animation. */
+  open() {
+    this.el.scene.hidden = false;
+    this.root.classList.add('norad-open');
+    this._applyTheme();
+    this.start();
+  }
+
+  /** Close the scene and stop all timers. Does NOT fire onComplete. */
+  close() {
+    this._stop();
+    this.el.scene.hidden = true;
+    this.root.classList.remove('norad-open');
+  }
+
+  toggle() {
+    if (this.el.scene.hidden) this.open();
+    else this.close();
+  }
+
+  _stop() {
+    this.running = false;
+    this.gen += 1;
+    clearInterval(this._rollTimer);
+    clearTimeout(this._lockTimer);
+    clearInterval(this._clockTimer);
+    this._rollTimer = this._lockTimer = this._clockTimer = null;
+  }
+
+  /** Start (or restart) the brute-force animation from scratch. */
+  start() {
+    this._stop();
+    const gen = this.gen;
+    this.running = true;
+    this.el.scene.classList.remove('complete', 'aborted', 'alarm');
+    this._buildReadout();
+    this.startTime = performance.now();
+    if (this.el.statusBottom) this.el.statusBottom.textContent = 'STAND BY.';
+
+    // 1) Roll every unsolved cell through candidate glyphs.
+    const rollMs = this._reduced ? Math.max(this.rollMs * 4, 240) : this.rollMs;
+    this._rollTimer = setInterval(() => {
+      if (gen !== this.gen) return;
+      for (const c of this.cells) {
+        if (!c.locked) c.el.textContent = randOf(this._charset(c.kind));
+      }
+    }, rollMs);
+
+    // 2) Lock cells one at a time, in random order, spread across crackMs.
+    //    A little jitter around the even cadence keeps it from feeling metronomic.
+    const step = this.crackMs / (this.cells.length + 1);
+    let n = 0;
+    const scheduleNext = () => {
+      if (gen !== this.gen || n >= this.solveOrder.length) return;
+      const jitter = step * (0.55 + Math.random() * 0.9);
+      this._lockTimer = setTimeout(() => {
+        if (gen !== this.gen) return;
+        this._lockCell(this.solveOrder[n]);
+        n += 1;
+        if (n >= this.solveOrder.length) this._finish('launch');
+        else scheduleNext();
+      }, jitter);
+    };
+    scheduleNext();
+
+    // 3) Countdown clock, synced to crackMs. Tips into red "alarm" in the last 20%.
+    this._tickClock(gen);
+    this._clockTimer = setInterval(() => this._tickClock(gen), 250);
+  }
+
+  _tickClock(gen) {
+    if (gen !== this.gen) return;
+    const elapsed = performance.now() - this.startTime;
+    const remaining = Math.max(0, this.crackMs - elapsed);
+    if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(remaining);
+    if (remaining <= this.crackMs * 0.2) this.el.scene.classList.add('alarm');
+  }
+
+  _lockCell(index) {
+    const c = this.cells[index];
+    if (!c || c.locked) return;
+    c.locked = true;
+    c.el.textContent = c.target;
+    c.el.classList.remove('rolling');
+    c.el.classList.add('locked', 'flash');
+    setTimeout(() => c.el.classList.remove('flash'), 400);
+    this.solvedCount += 1;
+    this._updateSolved();
+    if (this.el.statusBottom && this.solvedCount < this.cells.length) {
+      this.el.statusBottom.textContent = `SOLVING… ${this.cells.length - this.solvedCount} CELLS REMAIN`;
+    }
+  }
+
+  /** Resolve the scene: 'launch' (all cells solved) or 'abort' (host halted it). */
+  _finish(outcome) {
+    this._stop();
+    if (outcome === 'launch') {
+      // Ensure every cell shows its true glyph.
+      for (const c of this.cells) {
+        c.locked = true;
+        c.el.textContent = c.target;
+        c.el.classList.remove('rolling');
+        c.el.classList.add('locked');
+      }
+      this.solvedCount = this.cells.length;
+      this._updateSolved();
+      this.el.scene.classList.remove('alarm');
+      this.el.scene.classList.add('complete');
+      if (this.el.clockValue) this.el.clockValue.textContent = '00:00';
+      if (this.el.statusBottom) this.el.statusBottom.textContent = 'SEQUENCE COMPLETE — LAUNCH AUTHORIZED';
+    } else {
+      this.el.scene.classList.remove('alarm', 'complete');
+      this.el.scene.classList.add('aborted');
+      if (this.el.statusBottom) this.el.statusBottom.textContent = 'SEQUENCE ABORTED — CONNECTION SEVERED';
+    }
+    if (this.onComplete) {
+      try {
+        this.onComplete(outcome);
+      } catch (e) {
+        console.error('NoradScene onComplete failed:', e);
+      }
+    }
+  }
+
+  /** Host hook: stop the crack early (e.g. player severs the modem / teaches futility). */
+  abort() {
+    if (this.running) this._finish('abort');
+  }
+}

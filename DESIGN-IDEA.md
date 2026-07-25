@@ -320,3 +320,15 @@ release). This section is the living backlog — synced to
 **Later (P3, not yet issues):** narrative/branch expansion beyond the core scenario;
 save/resume + shareable session results; optional (rare, windowed) LLM chess commentary;
 more identity sets; a written case study of the build.
+
+### Companion scene study — NORAD "big board"
+
+A **swappable NORAD war-room scene** (the launch-code brute-force + countdown from the end
+of the film) is designed and prototyped in
+[DESIGN-IDEA-NORAD-SCENE.md](DESIGN-IDEA-NORAD-SCENE.md). It ships as **Option A ("THE
+LOCK")** behind a **NORAD** toggle in the status bar — a wall-sized 14-segment readout whose
+cells solve in random order against a clock, in a cold institutional palette that is the
+visual opposite of the terminal. Recommended next steps there: **scripted cutaways** at key
+beats (the parallel-worlds dramatic irony) and an optional **split-screen** view for the
+climax. See that doc for options, the font strategy, and the linking recommendations.
+
