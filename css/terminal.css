@@ -846,11 +846,11 @@ input:focus {
   justify-content: flex-end;
 }
 
-/* ---------- Chess panel (left-docked, optional) ---------- */
+/* ---------- Chess panel (right-docked, optional) ---------- */
 .chess-panel {
   position: absolute;
   top: 0;
-  left: 0;
+  right: 0;
   bottom: 0;
   width: 380px;
   max-width: 94vw;
@@ -858,8 +858,8 @@ input:focus {
   display: flex;
   flex-direction: column;
   background: rgba(1, 8, 1, 0.975);
-  border-right: 1px solid var(--fg-dim);
-  box-shadow: 10px 0 34px rgba(0, 0, 0, 0.55);
+  border-left: 1px solid var(--fg-dim);
+  box-shadow: -10px 0 34px rgba(0, 0, 0, 0.55);
   font-size: 0.8rem;
   padding-bottom: 10px;
 }
@@ -867,7 +867,7 @@ input:focus {
 .cp-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 10px 12px;
   border-bottom: 1px solid var(--fg-dim);
   letter-spacing: 2px;
@@ -887,23 +887,6 @@ input:focus {
   letter-spacing: 1px;
   min-height: 1.4em;
 }
-
-.cp-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 12px 4px;
-  font-size: 0.7rem;
-  color: var(--fg-dim);
-}
-.cp-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-.cp-check input { accent-color: var(--fg); width: 15px; height: 15px; }
-.cp-tone { flex: 1; font-size: 0.72rem; padding: 3px 6px; }
 
 .cp-board {
   display: grid;

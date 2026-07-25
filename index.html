@@ -154,6 +154,19 @@
           </section>
 
           <section class="ac-section">
+            <div class="ac-section-head"><span>CHESS CONFIG</span></div>
+            <label class="ac-field"><span>Commentary</span>
+              <input type="checkbox" id="cp-talk" /></label>
+            <label class="ac-field col"><span>Commentary voice</span>
+              <select id="cp-tone">
+                <option value="">Auto (match session)</option>
+                <option value="normal">Normal — Joshua</option>
+                <option value="professor">Professor</option>
+                <option value="berserk">Berserk</option>
+              </select></label>
+          </section>
+
+          <section class="ac-section">
             <div class="ac-section-head"><span>SESSION TELEMETRY</span></div>
             <pre class="ac-pre" id="ac-telemetry">—</pre>
             <div class="ac-telemetry-actions">
@@ -167,7 +180,6 @@
            or type coordinate moves like e2e4. The board repaints on every move. -->
       <aside class="chess-panel" id="chess-panel" aria-label="Chess" hidden>
         <div class="cp-head">
-          <span class="cp-title" id="cp-title">CHESS</span>
           <div class="cp-actions">
             <button class="ghost-btn" id="cp-new" type="button">NEW</button>
             <button class="ghost-btn" id="cp-flip" type="button">PLAY BLACK</button>
@@ -175,15 +187,6 @@
           </div>
         </div>
         <div class="cp-status" id="cp-status">Your move (White).</div>
-        <div class="cp-controls">
-          <label class="cp-check"><input type="checkbox" id="cp-talk" /> Commentary</label>
-          <select id="cp-tone" class="cp-tone" title="Commentary voice">
-            <option value="">Auto (match session)</option>
-            <option value="normal">Normal — Joshua</option>
-            <option value="professor">Professor</option>
-            <option value="berserk">Berserk</option>
-          </select>
-        </div>
         <div class="cp-board" id="cp-board"></div>
         <div class="cp-input-row">
           <input id="cp-move" class="cp-move" type="text" autocomplete="off" spellcheck="false" placeholder="type a move, e.g. e2e4" />
