@@ -1,6 +1,7 @@
 {
   "$schema": "https://example.com/wargames-dev-telemetry.schema.json",
-  "project": "WarGames-inspired terminal thriller (vertical slice)",
+  "project": "WarGames-inspired terminal thriller + chess + self-hosted AI proxy",
+  "buildWindow": { "start": "2026-07-21", "end": "2026-07-24", "calendarDays": 4 },
   "sessionDate": "2026-07-21",
   "primaryModel": {
     "name": "Claude Opus 4.8",
@@ -10,25 +11,99 @@
     {
       "name": "Claude Opus 4.8",
       "via": "GitHub Copilot",
-      "role": "research, design, code generation, docs"
+      "role": "research, design, code generation, model evaluation, docs"
     }
   ],
-  "note": "Exact token counts are metered by the Copilot/provider dashboard. Values below are ESTIMATES to reconcile with actuals.",
+  "note": "Build-side token counts are ESTIMATES to reconcile with the Copilot/provider dashboard. Cloud model-evaluation figures are MEASURED (37 real games); on-box GPU figures are functional/operational only and not yet benchmarked at volume.",
+  "effort": {
+    "agentTurns": 52,
+    "commits": 26,
+    "repos": ["Ethical-Tech-CoLab/War-Games", "Ethical-Tech-CoLab/pages-ai-proxy"],
+    "turnsByDay": {
+      "2026-07-21": 14,
+      "2026-07-22": 14,
+      "2026-07-24": 21,
+      "2026-07-25": 3
+    },
+    "commitsByDay": {
+      "2026-07-21": 5,
+      "2026-07-23": 3,
+      "2026-07-24": 18
+    }
+  },
+  "codebase": {
+    "repo": "War-Games",
+    "trackedFiles": 42,
+    "trackedLines": 10503,
+    "byType": {
+      "js": { "files": 10, "lines": 3324 },
+      "mjs": { "files": 5, "lines": 1121 },
+      "jsonl": { "files": 10, "lines": 3037 },
+      "md": { "files": 7, "lines": 1070 },
+      "css": { "files": 1, "lines": 895 },
+      "json": { "files": 4, "lines": 721 },
+      "html": { "files": 1, "lines": 192 }
+    }
+  },
+  "cost": {
+    "buildAgent": "GitHub Copilot subscription (flat-rate, not metered per token)",
+    "cloudModelEvaluationUSD": 0.23,
+    "cloudModelEvaluationGames": 37,
+    "onBoxGpuMarginalUSD": 0,
+    "hostingUSD": 0
+  },
   "phases": [
-    { "id": 1, "name": "Research", "artifacts": ["research notes"], "timeSharePct": 15 },
-    { "id": 2, "name": "Design", "artifacts": ["DESIGN-IDEA.md"], "timeSharePct": 15 },
-    { "id": 3, "name": "Scaffold", "artifacts": ["index.html", "css/terminal.css", "js/config.js"], "timeSharePct": 15 },
-    { "id": 4, "name": "Content", "artifacts": ["js/dialogue.js"], "timeSharePct": 15 },
-    { "id": 5, "name": "Engine", "artifacts": ["js/engine.js", "js/terminal.js"], "timeSharePct": 15 },
-    { "id": 6, "name": "Integrations", "artifacts": ["js/llm.js", "js/telemetry.js"], "timeSharePct": 15 },
-    { "id": 7, "name": "Wiring + docs", "artifacts": ["js/main.js", "README.md", "CASE-STUDY.md"], "timeSharePct": 10 }
+    { "id": 1, "name": "Research", "artifacts": ["research notes"] },
+    { "id": 2, "name": "Design", "artifacts": ["DESIGN-IDEA.md"] },
+    { "id": 3, "name": "Scaffold", "artifacts": ["index.html", "css/terminal.css", "js/config.js"] },
+    { "id": 4, "name": "Content", "artifacts": ["js/dialogue.js"] },
+    { "id": 5, "name": "Engine", "artifacts": ["js/engine.js", "js/terminal.js"] },
+    { "id": 6, "name": "Integrations", "artifacts": ["js/llm.js", "js/telemetry.js"] },
+    { "id": 7, "name": "Simulation harness + model evaluation", "artifacts": ["sim/simulate.mjs", "sim/model-profiles.mjs", "sim/engine-headless.mjs", "sim/analyze.mjs", "Simulation-Output.md"] },
+    { "id": 8, "name": "Proxy + B3IQ deployment", "artifacts": ["pages-ai-proxy/*", "ai-proxy.json", "serve.mjs"] },
+    { "id": 9, "name": "Chess mini-game (voice + commentary)", "artifacts": ["js/chess.js", "js/chess-ui.js", "js/audio.js", "CHESS-DESIGN.md"] },
+    { "id": 10, "name": "Admin Console + berserk + polish", "artifacts": ["js/main.js"] },
+    { "id": 11, "name": "Docs", "artifacts": ["README.md", "CASE-STUDY.md"] }
   ],
   "tokenEstimates": {
     "researchContext": { "in": 40000, "out": 1500 },
     "designAuthoring": { "in": 6000, "out": 6500 },
     "codeGeneration": { "in": 30000, "out": 14000 },
     "docsAndTelemetry": { "in": 8000, "out": 4000 },
-    "roughTotal": { "in": 84000, "out": 26000 }
+    "roughTotal": { "in": 84000, "out": 26000 },
+    "note": "Covers the original slice; the expanded build (sim harness, proxy, chess, polish) adds substantial further, un-estimated agent tokens. Reconcile totals against the dashboard."
+  },
+  "modelEvaluation": {
+    "source": "Simulation-Output.md",
+    "endpoint": "https://models.github.ai/inference/chat/completions",
+    "realTurnCap": 12,
+    "tracks": {
+      "scriptedRuns": 500,
+      "syntheticRunsPerClass": 500,
+      "syntheticClasses": 5,
+      "realGamesTotal": 37
+    },
+    "cloudMeasured": [
+      { "model": "openai/gpt-4o-mini", "n": 12, "jsonValidPct": 100, "parseFailPct": 0, "unresolvedPct": 25, "taughtNotLearnedPct": 0, "turnsMean": 6.6, "latencyPerGameSec": 13.7, "costPerGameUSD": 0.0009, "tokensInAvg": 4698, "tokensOutAvg": 399 },
+      { "model": "openai/gpt-4o", "n": 12, "jsonValidPct": 100, "parseFailPct": 0, "unresolvedPct": 25, "taughtNotLearnedPct": 0, "turnsMean": 6.7, "latencyPerGameSec": 11.6, "costPerGameUSD": 0.0157, "tokensInAvg": 4566, "tokensOutAvg": 424 },
+      { "model": "meta/Llama-3.3-70B-Instruct", "n": 12, "jsonValidPct": 98.5, "parseFailPct": 1.49, "unresolvedPct": 16.7, "taughtNotLearnedPct": 0, "turnsMean": 5.6, "latencyPerGameSec": 34.5, "costPerGameUSD": 0.0028, "tokensInAvg": 3640, "tokensOutAvg": 327 },
+      { "model": "microsoft/Phi-4", "n": 1, "jsonValidPct": 100, "parseFailPct": 0, "unresolvedPct": 0, "taughtNotLearnedPct": 0, "turnsMean": 7, "latencyPerGameSec": 13.6, "costPerGameUSD": 0.0006, "note": "n=1, rate-limited; not statistically meaningful" }
+    ],
+    "gpuOnBox": {
+      "node": "B3IQ GPU (owned US hardware, Ollama)",
+      "routing": "same proxy URL; model id selects cloud vs on-box",
+      "marginalCostUSD": 0,
+      "rateLimited": false,
+      "models": [
+        { "id": "gemma3:12b", "class": "small-mid instruct", "status": "deployed, functionally validated" },
+        { "id": "qwen3:14b", "class": "mid instruct", "status": "deployed, functionally validated" },
+        { "id": "deepseek-r1:8b", "class": "reasoning", "status": "deployed, experimental (verbose/slow)" },
+        { "id": "hf.co/unsloth/Qwen3.6-27B-GGUF:latest", "class": "large instruct", "status": "deployed, premium on-box" }
+      ],
+      "benchmarkStatus": "not yet run at volume",
+      "benchmarkCommand": "node sim/simulate.mjs --scripted 0 --synthetic 0 --real 12 (with sim/.env.local pointing GH_MODELS_ENDPOINT at the proxy and SIM_MODELS=gemma3:12b,qwen3:14b,deepseek-r1:8b)"
+    },
+    "headlineRecommendation": "Default openai/gpt-4o-mini (100% JSON, 0% taught-not-learned, ~1/17th the cost of gpt-4o); implement engine-owned escalation (R-H4)."
   },
   "runtimePlaytests": [],
   "reconciliation": {
