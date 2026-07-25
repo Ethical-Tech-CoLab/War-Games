@@ -184,6 +184,21 @@ export class NoradScene {
     this.start();
   }
 
+  /**
+   * Open the scene driven by a DETERMINISTIC plan shared across devices (multi-device sync,
+   * EASY tier — see sync.js / DESIGN-IDEA-NORAD-SCENE.md §8). The plan supplies the shared
+   * code/mask, epochStart, durationMs, seeded solve order, and a corrected clock() so two
+   * screens show the same cell locking at the same instant.
+   */
+  openScheduled(plan) {
+    this.el.scene.hidden = false;
+    this.root.classList.add('norad-open');
+    if (plan.code) this.code = String(plan.code).toUpperCase();
+    if (plan.mask) this.mask = plan.mask;
+    this._applyTheme();
+    this.startScheduled(plan);
+  }
+
   /** Close the scene and stop all timers. Does NOT fire onComplete. */
   close() {
     this._stop();
@@ -244,6 +259,70 @@ export class NoradScene {
     // 3) Countdown clock, synced to crackMs. Tips into red "alarm" in the last 20%.
     this._tickClock(gen);
     this._clockTimer = setInterval(() => this._tickClock(gen), 250);
+  }
+
+  /**
+   * Deterministic drive: instead of self-timed random locks, derive everything from a shared
+   * plan + corrected clock so two devices stay calibrated (EASY multi-device sync). The k-th
+   * solved cell locks at epochStart + durationMs*(k+1)/(n+1) — an even, jitter-free cadence
+   * so both screens agree. A late-joining follower simply catches up on its first tick.
+   */
+  startScheduled(plan) {
+    this._stop();
+    const gen = this.gen;
+    this.plan = plan;
+    this.running = true;
+    this.el.scene.classList.remove('complete', 'aborted', 'alarm');
+    this._buildReadout();
+    if (Array.isArray(plan.order) && plan.order.length === this.cells.length) {
+      this.solveOrder = plan.order.slice();
+    }
+    if (this.el.statusBottom) this.el.statusBottom.textContent = 'SYNC ACQUIRED — STAND BY.';
+
+    // Roll unsolved cells (cosmetic; glyph churn need not match across devices).
+    const rollMs = this._reduced ? Math.max(this.rollMs * 4, 240) : this.rollMs;
+    this._rollTimer = setInterval(() => {
+      if (gen !== this.gen) return;
+      for (const c of this.cells) {
+        if (!c.locked) c.el.textContent = randOf(this._charset(c.kind));
+      }
+    }, rollMs);
+
+    // Drive locks + clock off the shared corrected clock.
+    this._clockTimer = setInterval(() => this._driveScheduled(gen), 100);
+    this._driveScheduled(gen);
+  }
+
+  _driveScheduled(gen) {
+    if (gen !== this.gen) return;
+    const now = this.plan.clock();
+    const start = this.plan.epochStart;
+    const dur = this.plan.durationMs;
+    const n = this.cells.length;
+
+    // Pre-start: both devices wait for the shared epoch before the crack visibly begins.
+    if (now < start) {
+      if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(dur);
+      const secs = Math.ceil((start - now) / 1000);
+      if (this.el.statusBottom) this.el.statusBottom.textContent = `SYNC ACQUIRED — SEQUENCE BEGINS IN ${secs}S`;
+      return;
+    }
+
+    const elapsed = now - start;
+    const remaining = Math.max(0, dur - elapsed);
+    // How many cells SHOULD be locked by now (even cadence, deterministic on both screens).
+    const target = Math.min(n, Math.floor((elapsed / dur) * (n + 1)));
+    while (this.solvedCount < target) {
+      this._lockCell(this.solveOrder[this.solvedCount]);
+    }
+
+    if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(remaining);
+    if (remaining <= dur * 0.2) this.el.scene.classList.add('alarm');
+    if (this.el.statusBottom && this.solvedCount < n) {
+      this.el.statusBottom.textContent = `SOLVING… ${n - this.solvedCount} CELLS REMAIN`;
+    }
+
+    if (elapsed >= dur) this._finish('launch');
   }
 
   _tickClock(gen) {

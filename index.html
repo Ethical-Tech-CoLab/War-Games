@@ -24,6 +24,7 @@
         <div class="status-right">
           <span class="mode-badge" id="mode-badge"></span>
           <button class="ghost-btn" id="norad-btn" type="button" title="NORAD big board">NORAD</button>
+          <button class="ghost-btn" id="pair-btn" type="button" title="Pair a second screen">PAIR</button>
           <button class="ghost-btn" id="chess-btn" type="button" title="Chess">&#9823;</button>
           <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
@@ -245,6 +246,32 @@
           </div>
         </div>
       </section>
+
+      <!-- Device pairing overlay (multi-device EASY sync — see DESIGN-IDEA-NORAD-SCENE.md §8).
+           The bedroom device (leader) mints a deterministic timeline and shows a link/room
+           code; opening that link on a second device runs the NORAD board in lockstep. -->
+      <div class="pair-overlay" id="pair-overlay" hidden>
+        <div class="pair-panel">
+          <h2 class="pair-title">PAIR NORAD DISPLAY</h2>
+          <p class="pair-sub">
+            Open this link on the <strong>second device</strong> (the NORAD big board). Both
+            screens run one shared, time-synced sequence — like the film's intercutting.
+          </p>
+          <label class="pair-field">
+            <span class="pair-label">FOLLOWER LINK</span>
+            <input id="pair-url" class="pair-url" type="text" readonly spellcheck="false" />
+          </label>
+          <div class="pair-meta">
+            <span>ROOM <strong id="pair-room">—</strong></span>
+            <span>SEQUENCE BEGINS IN <strong id="pair-countdown">—</strong></span>
+          </div>
+          <div class="pair-actions">
+            <button class="primary-btn" id="pair-copy" type="button">COPY LINK</button>
+            <button class="ghost-btn" id="pair-open" type="button" title="Preview the NORAD board on this device">OPEN HERE</button>
+            <button class="ghost-btn" id="pair-close" type="button">CLOSE</button>
+          </div>
+        </div>
+      </div>
       </div>
       <!-- Monitor chin: fake brand plate + power LED for that 1983 feel -->
       <div class="monitor-chin" aria-hidden="true">

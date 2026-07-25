@@ -10,6 +10,7 @@ import { GameEngine } from './engine.js';
 import { AudioFx } from './audio.js';
 import { ChessPanel } from './chess-ui.js';
 import { NoradScene } from './norad.js';
+import { SyncSession } from './sync.js';
 
 const root = document.getElementById('crt');
 const els = {
@@ -38,6 +39,8 @@ const chess = new ChessPanel(root, { audio });
 const norad = new NoradScene(root);
 let chessStarted = false;
 let telemetryTimer = null;
+let pairLeader = null; // SyncSession (leader) minted for the pairing panel
+let pairCountdownTimer = null;
 
 // ---------- Populate menu ----------
 function populateNameSets() {
@@ -437,6 +440,93 @@ document.getElementById('norad-btn').addEventListener('click', () => {
   norad.toggle();
 });
 
+// ---------- Device pairing (multi-device EASY sync — DESIGN-IDEA-NORAD-SCENE.md §8) ----------
+const pairEls = {
+  overlay: document.getElementById('pair-overlay'),
+  url: document.getElementById('pair-url'),
+  room: document.getElementById('pair-room'),
+  countdown: document.getElementById('pair-countdown'),
+  copy: document.getElementById('pair-copy'),
+  openHere: document.getElementById('pair-open'),
+  close: document.getElementById('pair-close'),
+};
+
+function stopPairCountdown() {
+  clearInterval(pairCountdownTimer);
+  pairCountdownTimer = null;
+}
+
+function openPairPanel() {
+  // Mint a fresh deterministic timeline for the two screens. The leader (this bedroom device)
+  // hands the follower link to a second device that will run the NORAD board in lockstep.
+  pairLeader = SyncSession.createLeader({
+    code: 'CPE1704TKS',
+    mask: 'LLLDDDDLLL',
+    durationMs: 45000,
+    leadMs: 20000, // lead time to carry/scan the link to the second screen
+  });
+  norad.names = norad.names || null;
+  pairEls.url.value = pairLeader.followerUrl();
+  pairEls.room.textContent = pairLeader.payload.room;
+  pairEls.overlay.hidden = false;
+
+  stopPairCountdown();
+  const tick = () => {
+    const secs = Math.max(0, Math.ceil((pairLeader.payload.epochStart - Date.now()) / 1000));
+    pairEls.countdown.textContent = `${secs}S`;
+    if (secs <= 0) stopPairCountdown();
+  };
+  tick();
+  pairCountdownTimer = setInterval(tick, 500);
+}
+
+function closePairPanel() {
+  stopPairCountdown();
+  pairEls.overlay.hidden = true;
+}
+
+document.getElementById('pair-btn').addEventListener('click', openPairPanel);
+pairEls.close.addEventListener('click', closePairPanel);
+pairEls.copy.addEventListener('click', async () => {
+  pairEls.url.select();
+  try {
+    await navigator.clipboard.writeText(pairEls.url.value);
+    pairEls.copy.textContent = 'COPIED';
+    setTimeout(() => { pairEls.copy.textContent = 'COPY LINK'; }, 1500);
+  } catch {
+    document.execCommand('copy'); // fallback for non-secure contexts
+  }
+});
+// Preview the follower board on THIS device (useful for single-machine testing).
+pairEls.openHere.addEventListener('click', async () => {
+  closePairPanel();
+  await pairLeader.align();
+  norad.openScheduled(pairLeader.plan());
+});
+
+/**
+ * If the page is opened with a ?sync=<payload> param, this device is the NORAD FOLLOWER: a
+ * pure big-board display. Skip the menu, align the shared clock, and run the deterministic
+ * scheduled crack so it stays calibrated with the leader (bedroom) device (EASY sync).
+ * @returns {Promise<boolean>} true if it booted as a follower
+ */
+async function maybeBootstrapFollower() {
+  const syncParam = new URLSearchParams(location.search).get('sync');
+  if (!syncParam) return false;
+  let session;
+  try {
+    session = SyncSession.fromString(syncParam);
+  } catch (e) {
+    console.warn('Invalid ?sync= payload; ignoring.', e);
+    return false;
+  }
+  els.menuOverlay.hidden = true;
+  norad.names = NAME_SETS[DEFAULT_NAME_SET];
+  await session.align();
+  norad.openScheduled(session.plan());
+  return true;
+}
+
 els.restartBtn.addEventListener('click', () => {
   stopTelemetryTicker();
   els.statusbar.hidden = true;
@@ -452,5 +542,6 @@ els.restartBtn.addEventListener('click', () => {
 populateNameSets();
 prefillLlmFields();
 loadProxyDiscovery();
+maybeBootstrapFollower();
 // Reflect the film title token in the menu subtitle if desired later via applyNames.
 void applyNames;

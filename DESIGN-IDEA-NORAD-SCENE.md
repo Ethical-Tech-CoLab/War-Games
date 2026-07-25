@@ -441,6 +441,15 @@ Pair once, then both devices run the **same deterministic timeline** off their o
 - **Cons:** it's a *fixed* timeline — the follower can't react to live player choices on the
   leader (DEFCON is on a schedule, not driven by the player in real time).
 - **Best for:** a scripted, rehearsed demo / installation piece where the arc is fixed.
+- **Status: shipped.** Implemented in [js/sync.js](js/sync.js) (`SyncSession`, `mulberry32`
+  seeded PRNG, URL-safe payload encode/decode, `estimateClockOffset` via the page origin's
+  `Date` header) and driven by `NoradScene.openScheduled(plan)` in [js/norad.js](js/norad.js).
+  **How to use it:** on the bedroom (leader) device press **PAIR** in the status bar → it
+  mints a deterministic timeline and shows a **FOLLOWER LINK** (+ room code + start
+  countdown). Open that link on the second device: the `?sync=` param makes it skip the menu
+  and boot straight into the NORAD board, aligned to the shared epoch. **OPEN HERE** previews
+  the follower board on the leader device for single-machine testing. Any device opening the
+  same link lands on the identical code (verified: both resolve to `CPE1704TKS`).
 
 #### Medium — proxy KV + polling (live leader→follower) ⭐ recommended for interactivity
 
@@ -457,6 +466,13 @@ access control.
 - **Cons:** ~1s polling latency; needs a trivial proxy change + a little state hygiene
   (expire stale rooms).
 - **Best for:** an interactive two-screen experience where the player's actions matter.
+- **Status: scaffolded, inert until enabled.** [js/sync.js](js/sync.js) already exposes the
+  target surface — `SyncSession.publish(partial)` (leader) and `SyncSession.subscribe(cb)`
+  (follower) — behind a `mode` flag; they are no-ops until `mode === 'medium'`. Turning
+  Medium on means: implement the two `TODO(medium)` bodies (`POST`/poll the proxy `/sync/:room`
+  KV) and pass `mode:'medium'` when constructing the session. Because `plan()`/`now()`/`align()`
+  are unchanged, **[js/norad.js](js/norad.js) and [js/main.js](js/main.js) need no edits** —
+  the follower just receives live `rev`-gated updates instead of a fixed timeline.
 
 #### Hard — push + tight clock discipline (SSE/WebSocket)
 

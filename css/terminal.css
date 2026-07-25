@@ -1327,3 +1327,76 @@ input:focus {
   .norad-meta { grid-template-columns: 1fr; gap: 10px; }
   .norad-meta-right { align-items: center; }
 }
+
+/* ---------- Device pairing overlay (multi-device EASY sync) ---------- */
+.pair-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1, 8, 3, 0.82);
+  backdrop-filter: blur(2px);
+  padding: 20px;
+}
+.pair-panel {
+  width: min(560px, 94%);
+  border: 1px solid var(--fg-dim);
+  background: rgba(2, 12, 4, 0.98);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.4);
+  padding: 22px 24px;
+  color: var(--fg);
+}
+.pair-title {
+  margin: 0 0 8px;
+  color: var(--fg-bright);
+  letter-spacing: 3px;
+  font-size: 1.1rem;
+  text-shadow: 0 0 8px rgba(51, 255, 102, 0.5);
+}
+.pair-sub {
+  margin: 0 0 16px;
+  color: var(--fg-dim);
+  line-height: 1.5;
+  font-size: 0.85rem;
+}
+.pair-field {
+  display: block;
+  margin-bottom: 12px;
+}
+.pair-label {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: var(--fg-dim);
+  margin-bottom: 4px;
+}
+.pair-url {
+  width: 100%;
+  background: #010601;
+  color: var(--amber);
+  border: 1px solid var(--fg-dim);
+  font-family: var(--font);
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  letter-spacing: 0.5px;
+}
+.pair-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--fg-dim);
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+.pair-meta strong {
+  color: var(--fg-bright);
+}
+.pair-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
