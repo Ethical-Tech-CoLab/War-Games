@@ -5,26 +5,87 @@ A browser-based **terminal thriller** inspired by _WarGames_ (1983), with a mode
 relentless AI invites you to play a game. The only winning move is to understand the
 machine.
 
-This is the **vertical slice** described in [DESIGN-IDEA.md](DESIGN-IDEA.md) §5 — built to
-the five decisions locked for this prototype:
+> ▶ **Play it live:** **<https://ethical-tech-colab.github.io/War-Games/>**
+> No install, no sign-up — it runs in any modern browser.
 
-| # | Decision | Implementation |
-|---|---|---|
-| 1 | **Web / GitHub Pages** | Static, no build step, vanilla ES modules. Deploys as-is to GitHub Pages. |
-| 2 | **Both determinism modes** | Hand-authored branching dialogue (default + fallback) **and** a live-AI mode. |
-| 3 | **Blend of eras** | 1983 terminal homage + modern autonomous-AI-agent framing throughout. |
-| 4 | **Vertical slice** | ~10-min playable arc with 3 endings and the three signature beats. |
-| 5 | **Replaceable names** | Film names by default; 3 original name sets + a menu dropdown. |
+**What it is.** A ~10-minute playable arc with three endings and the film's three signature
+beats — *misidentification*, *persistence*, and *futility*. Play it hand-authored
+(**Scripted**) or let a real language model drive the persona (**Live AI**). This build also
+ships a **berserk easter egg**, an in-page **Admin Console**, session **telemetry**, and a
+full **chess mini-game** you can play by click, typing, or **voice** — against a tone-aware
+opponent that talks back.
 
-Plus **telemetry** for a case study: runtime metrics (time, events, endings, and — in AI
-mode — tokens in/out and latency) are captured locally and exportable as JSON.
+---
 
-The slice kept growing. This build also ships a **Live-AI persona** over a DEFCON state
-machine, a **berserk easter egg**, an in-page **Admin Console** (see the exact prompt/raw
-response and tweak config live), a self-hosted **AI proxy** on owned GPU hardware (cloud vs
-on-device model routing), and a full **chess mini-game** you can play by click, typing, or
-**voice** — with a tone-aware opponent that talks back. See the
-[Status & Roadmap](DESIGN-IDEA.md#9-status--roadmap-post-build) for the full list.
+## How to play
+
+1. **Identity set** — pick the vocabulary the game uses (see below).
+2. **Experience mode**:
+   - **Scripted** — deterministic, hand-authored. Choose from numbered options (click or
+     press `1`–`9`). Recommended for a reliable first playthrough.
+   - **Live AI** — the persona is driven by a language model. Type freely and try to stop
+     the machine. Type `help` for a hint.
+3. Watch the **DEFCON** ladder. 5 is peace, 1 is launch.
+4. Reach one of **three endings**: _Zero-Sum_ (annihilation), _Deadman's Switch_ (lockout),
+   or _The Only Winning Move_ (understanding).
+
+### Extras
+
+- **Admin Console** — click **CONSOLE** in the status bar to see the exact last prompt and
+  raw AI response, adjust live config (model, temperature, sound, speed, AI marker), review
+  the per-turn log, and read/export session telemetry.
+- **Chess** — click the ♟ button to open the chess panel. Move by clicking squares, typing
+  (`e2e4` or `e4`), or **voice** (🎤 SPEAK). The opponent comments and announces moves aloud;
+  tone is configurable under **Chess Config** in the Admin Console.
+- **Berserk easter egg** — a hidden authorization flips the persona into an emergent,
+  unbounded mode. (Left as a discovery.)
+
+---
+
+## Identity sets
+
+All in-game text is written with tokens like `{{SYSTEM}}`, `{{PERSONA}}`, `{{CREATOR}}`,
+`{{ORG}}`, and `{{GAME}}`. Swapping a **name set** re-skins the entire experience. Sets live
+in [js/config.js](js/config.js) and are selectable from the start-menu dropdown.
+
+| Set | System | AI persona | Creator | Org | The game |
+|---|---|---|---|---|---|
+| **Film homage** (default) | WOPR | JOSHUA | Professor Falken | NORAD | Global Thermonuclear War |
+| **SENTINEL** (defense-grade) | SENTINEL | AUGUR | Dr. Mara Vance | NORTHGATE COMMAND | Total Strategic Exchange |
+| **ORACLE** (classical/mythic) | ORACLE | ECHO | Dr. Elias Crane | DELPHI COMMAND | Global First Strike |
+| **HELIOS** (modern AI agent) | HELIOS | ATLAS | Dr. Priya Raman | Meridian Defense AI | Autonomous Escalation Protocol |
+
+> **IP note:** the film set is for prototyping only. Ship with an original set (see
+> DESIGN-IDEA.md §6). To add your own, copy an entry in `NAME_SETS` and it appears in the
+> dropdown automatically.
+
+---
+
+# Under the hood
+
+*Everything below is for the curious and for developers — playing the game needs none of it.*
+
+## How Live-AI works (the pages-ai-proxy, already running)
+
+The hosted site is a **static** GitHub Pages app, so it can't keep a secret token or make
+cross-origin AI calls from the browser (GitHub Models blocks direct browser requests). Live
+AI therefore talks to a small proxy we already run on our **own US-based B3IQ GPU node** —
+the companion [**pages-ai-proxy**](https://github.com/Ethical-Tech-CoLab/pages-ai-proxy). It
+does the work the browser can't:
+
+1. **Finds itself.** The site reads [`ai-proxy.json`](ai-proxy.json) at startup to learn the
+   proxy's current URL — no hardcoded address to go stale.
+2. **Hides the key.** The provider token is injected **server-side** and never ships to the
+   browser.
+3. **Gates access.** An origin allow-list (CORS) means only our sites may call it.
+4. **Routes the model.** Each request goes to a **cloud** model (GitHub Models:
+   `gpt-4o-mini` / `gpt-4o`) or an **on-box GPU** model (Ollama: gemma3 / qwen3 /
+   deepseek-r1), chosen by the model id you pick in the Admin Console.
+5. **Fails safe.** If the proxy is unreachable and no personal key is entered, the game
+   quietly falls back to **Scripted** mode — it's never blocked by the network.
+
+Because the proxy is already deployed, **you don't need to set anything up to play** — just
+open the [live link](https://ethical-tech-colab.github.io/War-Games/) and choose **Live AI**.
 
 ---
 
@@ -118,26 +179,25 @@ Or use any static server (e.g. the VS Code "Live Server" extension).
 
 ---
 
-## Deploy to GitHub Pages
+## Host your own copy
 
-This app is **fully static** — no bundler, no server code — so it deploys with zero
+The main site is already live at <https://ethical-tech-colab.github.io/War-Games/> with the
+reference proxy running (see above) — so you only need this to run your **own** fork.
+
+The app is **fully static** — no bundler, no server code — so it deploys with zero
 configuration:
 
-1. Push the repository to GitHub.
+1. Fork the repository to GitHub.
 2. Settings → Pages → Source: deploy from branch (e.g. `main`, root `/`).
 3. Visit the published URL.
 
-### Live-AI on GitHub Pages (via a proxy)
+### Give your fork Live-AI (via your own proxy)
 
-GitHub Pages can't run server code, so it can't hold a token or bypass CORS (GitHub Models
-blocks direct browser calls). Live-AI on the hosted site therefore routes through a small
-serverless proxy — see the companion [**pages-ai-proxy**](https://github.com/Ethical-Tech-CoLab/pages-ai-proxy)
-repo (Azure Functions / Cloudflare Worker / Node). The proxy injects the provider token
-server-side and adds CORS.
+To enable Live-AI on your own deployment, stand up a `pages-ai-proxy`:
 
-To enable Live-AI on the deployed site:
-
-1. Deploy `pages-ai-proxy` and add this site's origin to its `ALLOWED_ORIGINS`.
+1. Deploy [**pages-ai-proxy**](https://github.com/Ethical-Tech-CoLab/pages-ai-proxy)
+   (Azure Functions / Cloudflare Worker / Node) and add your site's origin to its
+   `ALLOWED_ORIGINS`.
 2. Set the proxy URL in [js/config.js](js/config.js) → `SETTINGS.llm.proxyUrl`
    (e.g. `https://pages-ai-proxy.<sub>.workers.dev/v1/chat/completions`), **or** append
    `?proxy=<url>` to the page URL to test without editing code.
@@ -189,50 +249,6 @@ never blocked.
 
 ---
 
-## How to play
-
-1. **Identity set** — pick the vocabulary the game uses (see below).
-2. **Experience mode**:
-   - **Scripted** — deterministic, hand-authored. Choose from numbered options (click or
-     press `1`–`9`). Recommended for a reliable first playthrough.
-   - **Live AI** — the persona is driven by a language model. Type freely and try to stop
-     the machine. Type `help` for a hint.
-3. Watch the **DEFCON** ladder. 5 is peace, 1 is launch.
-4. Reach one of **three endings**: _Zero-Sum_ (annihilation), _Deadman's Switch_ (lockout),
-   or _The Only Winning Move_ (understanding).
-
-### Extras
-
-- **Admin Console** — click **CONSOLE** in the status bar to see the exact last prompt and
-  raw AI response, adjust live config (model, temperature, sound, speed, AI marker), review
-  the per-turn log, and read/export session telemetry.
-- **Chess** — click the ♟ button to open the chess panel. Move by clicking squares, typing
-  (`e2e4` or `e4`), or **voice** (🎤 SPEAK). The opponent comments and announces moves aloud;
-  tone is configurable under **Chess Config** in the Admin Console.
-- **Berserk easter egg** — a hidden authorization flips the persona into an emergent,
-  unbounded mode. (Left as a discovery.)
-
----
-
-## Replaceable names (config)
-
-All in-game text is written with tokens like `{{SYSTEM}}`, `{{PERSONA}}`, `{{CREATOR}}`,
-`{{ORG}}`, and `{{GAME}}`. Swapping a **name set** re-skins the entire experience. Sets live
-in [js/config.js](js/config.js) and are selectable from the start-menu dropdown.
-
-| Set | System | AI persona | Creator | Org | The game |
-|---|---|---|---|---|---|
-| **Film homage** (default) | WOPR | JOSHUA | Professor Falken | NORAD | Global Thermonuclear War |
-| **SENTINEL** (defense-grade) | SENTINEL | AUGUR | Dr. Mara Vance | NORTHGATE COMMAND | Total Strategic Exchange |
-| **ORACLE** (classical/mythic) | ORACLE | ECHO | Dr. Elias Crane | DELPHI COMMAND | Global First Strike |
-| **HELIOS** (modern AI agent) | HELIOS | ATLAS | Dr. Priya Raman | Meridian Defense AI | Autonomous Escalation Protocol |
-
-> **IP note:** the film set is for prototyping only. Ship with an original set (see
-> DESIGN-IDEA.md §6). To add your own, copy an entry in `NAME_SETS` and it appears in the
-> dropdown automatically.
-
----
-
 ## Telemetry
 
 Two layers, both for the case study:
@@ -268,6 +284,21 @@ DESIGN-IDEA.md        Research, concept options, and the Status & Roadmap backlo
 CHESS-DESIGN.md       Chess mini-game design doc
 CASE-STUDY.md         Development telemetry for the case study
 ```
+
+---
+
+## About this build
+
+Built as the **vertical slice** in [DESIGN-IDEA.md](DESIGN-IDEA.md) §5, to five decisions
+locked for the prototype:
+
+| # | Decision | Implementation |
+|---|---|---|
+| 1 | **Web / GitHub Pages** | Static, no build step, vanilla ES modules. |
+| 2 | **Both determinism modes** | Hand-authored branching dialogue **and** a live-AI mode. |
+| 3 | **Blend of eras** | 1983 terminal homage + modern autonomous-AI-agent framing. |
+| 4 | **Vertical slice** | ~10-min arc with 3 endings and the three signature beats. |
+| 5 | **Replaceable names** | Film names by default; 3 original name sets + a menu dropdown. |
 
 ---
 
