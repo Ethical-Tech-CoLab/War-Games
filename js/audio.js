@@ -243,9 +243,9 @@ export function spellAcronyms(text) {
 const SPOKEN_FIXES = [
   [/\bpac[-\s]?man\b/gi, 'pack man'],
   [/\bdino\b/gi, 'dyno'],
-  // Standalone letter/word "a" -> long A ("ay"), so the voice never mumbles it as a schwa
+  // Standalone letter/word "a" -> long A ("aaa"), so the voice never mumbles it as a schwa
   // (e.g. chess file "A 2" and the article "a" both read as the clear long vowel).
-  [/\ba\b/gi, 'ay'],
+  [/\ba\b/gi, 'aaa'],
   [/\bwe['\u2019]re\b/gi, 'we are'],
   [/\byou['\u2019]re\b/gi, 'you are'],
   [/\bthey['\u2019]re\b/gi, 'they are'],

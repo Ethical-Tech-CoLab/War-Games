@@ -41,6 +41,9 @@ let chessStarted = false;
 let telemetryTimer = null;
 let pairLeader = null; // SyncSession (leader) minted for the pairing panel
 let pairCountdownTimer = null;
+let engine = null; // the current GameEngine (leader/runtime session)
+let liveSession = null; // SyncSession (medium) the engine publishes to, when LIVE is on
+let activeNameSetKey = DEFAULT_NAME_SET;
 
 // ---------- Populate menu ----------
 function populateNameSets() {
@@ -236,6 +239,7 @@ async function startGame({ names, nameSetKey, mode }) {
   acResetPanel();
   root.classList.toggle('hide-ai-marker', SETTINGS.ui.aiMarker === false);
   chess.setPersona(names.PERSONA);
+  activeNameSetKey = nameSetKey;
   // Give the NORAD big board the active vocabulary + starting DEFCON so it reads as the
   // same world as the terminal when the player peeks behind the curtain.
   norad.names = names;
@@ -253,7 +257,13 @@ async function startGame({ names, nameSetKey, mode }) {
   });
   startTelemetryTicker();
 
-  const engine = new GameEngine({ terminal, telemetry, names, mode });
+  engine = new GameEngine({ terminal, telemetry, names, mode });
+  // Bridge the runtime session to the multi-device sync room: whenever the game's DEFCON /
+  // progress / phase changes, push it so a coupled NORAD follower mirrors this session's
+  // pacing (DESIGN-IDEA-NORAD-SCENE.md §7/§8). No-op until LIVE SYNC arms a session.
+  engine.onState = (s) => {
+    if (liveSession) liveSession.publish(s);
+  };
   await engine.start();
   refreshTelemetryPanel();
 }
@@ -518,17 +528,26 @@ function stopPairCountdown() {
 }
 
 // (Re)mint the leader timeline in the currently-selected tier, aligning the clock so the
-// shared epoch is expressed in the common reference frame. In MEDIUM it also creates the room.
+// shared epoch is expressed in the common reference frame. In MEDIUM it also creates the room
+// and bridges the running game session so the follower mirrors this session's live pacing.
 async function armLeader(room) {
   pairLeader = buildLeader(room);
   await pairLeader.align();
   pairLeader.payload.epochStart = pairLeader.now() + LEAD_MS;
+  // Carry identity + a per-run id so the follower themes correctly and ignores stale runs.
+  pairLeader.payload.nameSet = activeNameSetKey;
+  pairLeader.payload.sessionId = pairLeader.payload.sessionId || String(Date.now());
   refreshPairUrl();
   restartPairCountdown();
   if (pairLeader.mode === 'medium') {
-    await pairLeader.publish({ status: 'running' });
-    setLiveStatus(`ROOM ${pairLeader.payload.room} LIVE`);
+    liveSession = pairLeader; // engine.onState now publishes here on every change
+    // Seed the room with the game's CURRENT state (or 'armed' before the game starts) so a
+    // follower that joins mid-session immediately mirrors DEFCON/progress.
+    if (engine) engine.emitState();
+    else await pairLeader.publish({ status: 'armed' });
+    setLiveStatus(`ROOM ${pairLeader.payload.room} LIVE — FOLLOWER MIRRORS THIS SESSION`);
   } else {
+    liveSession = null;
     setLiveStatus('');
   }
 }
@@ -574,44 +593,42 @@ pairEls.copy.addEventListener('click', async () => {
     document.execCommand('copy'); // fallback for non-secure contexts
   }
 });
-// Preview the follower board on THIS device (useful for single-machine testing).
+// Preview the follower board on THIS device (single-machine testing). Always a self-contained
+// deterministic preview (EASY), so it animates even though nothing is driving it live.
 pairEls.openHere.addEventListener('click', () => {
   closePairPanel();
-  const follower = SyncSession.fromString(pairLeader.encode(), {
+  const preview = SyncSession.fromString(pairLeader.encode(), {
     syncBase: resolveSyncBase(),
-    mode: pairLeader.mode,
+    mode: 'easy',
   });
-  runFollower(follower);
+  runFollower(preview);
 });
 
-/** Run a device as the NORAD follower: align, open the scheduled board, and (MEDIUM) react to
- *  live leader pushes. Shared by the same-device preview and the ?sync= bootstrap. */
+/**
+ * Run a device as the NORAD follower. EASY = a self-timed deterministic board off the shared
+ * epoch. MEDIUM = a COUPLED board that mirrors the leader's live session pacing: DEFCON and
+ * narrative progress (→ cells + eased clock) pushed via subscribe(). Shared by the
+ * same-device preview and the ?sync= bootstrap.
+ */
 async function runFollower(session) {
-  norad.names = norad.names || NAME_SETS[DEFAULT_NAME_SET];
+  const setKey = session.payload.nameSet;
+  norad.names = (setKey && NAME_SETS[setKey]) || norad.names || NAME_SETS[DEFAULT_NAME_SET];
   await session.align();
-  followerPlanKey = planKey(session.payload);
-  norad.openScheduled(session.plan());
   if (session.mode === 'medium') {
-    session.subscribe((state) => applyFollowerState(session, state));
+    norad.openCoupled({
+      code: session.payload.code,
+      mask: session.payload.mask,
+      names: norad.names,
+    });
+    session.subscribe((state) => norad.applyState(state));
+  } else {
+    followerPlanKey = planKey(session.payload);
+    norad.openScheduled(session.plan());
   }
 }
 
 function planKey(p) {
   return `${p.epochStart}:${p.seed}:${p.durationMs}:${p.code}`;
-}
-
-// Apply a live leader push: DEFCON updates in place; abort halts; a changed timeline restarts.
-function applyFollowerState(session, state) {
-  if (typeof state.defcon === 'number') norad.setDefcon(state.defcon);
-  if (state.status === 'aborted') {
-    norad.abort();
-    return;
-  }
-  const key = planKey(state);
-  if (key !== followerPlanKey) {
-    followerPlanKey = key;
-    norad.openScheduled(session.plan());
-  }
 }
 
 /**

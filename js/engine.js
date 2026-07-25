@@ -15,16 +15,56 @@ export class GameEngine {
     this.mode = mode; // 'scripted' | 'llm'
     this.defcon = SETTINGS.defconStart;
     this._berserkLineCap = 4; // berserk reply cap; Prof Rhodes can lift it at runtime
+    // Multi-device coupling hook: when set, the engine publishes a SessionState on every
+    // meaningful change so a NORAD follower can mirror this session's pacing (DESIGN-IDEA-
+    // NORAD-SCENE.md §7/§8). Null in single-device play — zero overhead.
+    this.onState = null;
+    this._phase = 'first_contact';
+    this._ending = null;
   }
 
   _t(text) {
     return applyNames(text, this.names);
   }
 
+  // Narrative progress 0..1 that drives the NORAD board's "ticks" (not wall time). DEFCON is
+  // the master gauge, so map it directly; nodes refine phase. 5→0.0, 3→0.5, 2→0.75, 1→1.0.
+  _progress() {
+    return Math.max(0, Math.min(1, (5 - this.defcon) / 4));
+  }
+
+  _phaseForDefcon(d) {
+    if (d >= 5) return 'first_contact';
+    if (d === 4) return 'escalation';
+    if (d === 3) return 'escalation';
+    if (d === 2) return 'persistence';
+    return 'climax';
+  }
+
+  /** Publish the current SessionState to any coupled follower (no-op if not coupled). */
+  emitState(extra = {}) {
+    if (!this.onState) return;
+    const state = {
+      status: 'running',
+      defcon: this.defcon,
+      progress: this._progress(),
+      phase: this._phase,
+      ending: this._ending,
+      ...extra,
+    };
+    try {
+      this.onState(state);
+    } catch (e) {
+      console.warn('onState publish failed:', e);
+    }
+  }
+
   _setDefcon(value) {
     this.defcon = Math.max(1, Math.min(5, value));
     this.term.setDefcon(this.defcon);
     this.telemetry.defcon(this.defcon);
+    this._phase = this._phaseForDefcon(this.defcon);
+    this.emitState();
   }
 
   _applyEffect(effect) {
@@ -67,6 +107,8 @@ export class GameEngine {
       this._applyEffect(node.effect);
 
       if (node.type === 'ending') {
+        this._ending = node.effect?.ending || 'unknown';
+        this.emitState({ status: 'complete', progress: 1 });
         this.telemetry.endSession(node.effect?.ending || 'unknown');
         return;
       }

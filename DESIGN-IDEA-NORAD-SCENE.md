@@ -385,6 +385,26 @@ even without a cutaway.
 4. Validate: run the sim's fastest and slowest playthroughs; confirm NORAD never reports
    `SEQUENCE COMPLETE` before the climax node in either.
 
+### 7.7 Status — implemented (progress-driven coupling)
+
+Shipped as a **coupled** board tier. The runtime session is authoritative:
+[js/engine.js](js/engine.js) emits a `SessionState` (`{status, defcon, progress, phase,
+ending}`) on every DEFCON change and at the ending via `engine.emitState()` → `engine.onState`.
+[js/norad.js](js/norad.js) `openCoupled()` + `applyState()` map that live state onto the board:
+
+- **`progress` drives the "ticks":** `cells solved = round(progress × solvable)`; `progress`
+  currently derives from DEFCON (`(5−defcon)/4`), so the board advances *with the story*, not a
+  wall clock. (Node-beat sub-progress is the noted refinement.)
+- **The clock is a function of progress, eased** toward `(1−progress) × displayDuration` (18 %/
+  tick) so it creeps between beats and never freezes or outruns the plot — the film "edited
+  countdown" model.
+- **Reserve cells are held** (default 2) until an ending arrives, so NORAD cannot complete
+  before the bedroom's climax. `annihilation` → release + `SEQUENCE COMPLETE`; `lockout` /
+  `understanding` → stand-down. DEFCON is mirrored 1:1.
+
+> Verified two-tab: the follower mirrored DEFCON 5→3→1, locked 4/10 at progress 0.5 (2 held),
+> eased the clock 00:45→00:23, and released to 10/10 launch on the annihilation ending.
+
 ---
 
 ## 8. Multi-device time-sync (two screens, one room)
@@ -475,6 +495,10 @@ access control.
   publishes the room, and **PUSH RESYNC** / **PUSH ABORT** appear to drive all screens live.
   Verified with two tabs: follower followed the crack, DEFCON changed live, and ABORT froze
   the board within ~1s.
+- **Coupled to the live game (§7.7):** the follower now mirrors the *actual runtime session*,
+  not just manual PAIR controls — `GameEngine` publishes `defcon`/`progress`/`phase`/`ending`
+  and the follower opens in **coupled** mode (`openCoupled`/`applyState`), so DEFCON and
+  narrative progress track the bedroom session in real time.
 - **Production note:** the dev server hosts `/sync` same-origin; on GitHub Pages (static) the
   same endpoint must live on the **pages-ai-proxy** (reuse its origin allow-list). The client
   already targets the proxy origin via `resolveSyncBase()` when not on the local dev port, so

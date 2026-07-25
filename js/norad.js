@@ -77,16 +77,21 @@ export class NoradScene {
     this.mask = opts.mask || this._inferMask(this.code);
     this.crackMs = opts.crackMs || 45000;
     this.rollMs = opts.rollMs || 70;
+    this.coupledReserve = typeof opts.coupledReserve === 'number' ? opts.coupledReserve : 2;
 
     // Runtime state.
     this.cells = []; // { el, target, kind ('L'|'D'|'H'), locked }
     this.solveOrder = []; // indices into this.cells, random order
     this.solvedCount = 0;
     this.running = false;
+    this.coupled = false;
     this.gen = 0; // bumped on close/restart so stale timers no-op
     this._rollTimer = null;
     this._lockTimer = null;
     this._clockTimer = null;
+    this._easeTimer = null;
+    this._displayRemaining = null; // eased MM:SS value in coupled mode
+    this._targetRemaining = null; // where the eased clock is heading
 
     this._reduced =
       typeof window !== 'undefined' &&
@@ -199,6 +204,108 @@ export class NoradScene {
     this.startScheduled(plan);
   }
 
+  /**
+   * Open the scene COUPLED to a live runtime session (multi-device MEDIUM tier / §7). Unlike
+   * the scheduled tier, the board does NOT run its own clock — it follows narrative progress
+   * pushed by the leader via applyState(). The displayed clock is a function of progress
+   * ("ticks"), eased so it always looks alive but can never outrun the story.
+   */
+  openCoupled(opts = {}) {
+    this.el.scene.hidden = false;
+    this.root.classList.add('norad-open');
+    if (opts.code) this.code = String(opts.code).toUpperCase();
+    if (opts.mask) this.mask = opts.mask;
+    if (opts.names) this.names = opts.names;
+    this._applyTheme();
+    this.startCoupled();
+  }
+
+  startCoupled() {
+    this._stop();
+    const gen = this.gen;
+    this.running = true;
+    this.coupled = true;
+    this.el.scene.classList.remove('complete', 'aborted', 'alarm');
+    this._buildReadout();
+    this._displayRemaining = this.crackMs;
+    this._targetRemaining = this.crackMs;
+    if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(this.crackMs);
+    if (this.el.statusBottom) this.el.statusBottom.textContent = 'LINK ACQUIRED — AWAITING SEQUENCE DATA';
+
+    // Roll unsolved cells for texture.
+    const rollMs = this._reduced ? Math.max(this.rollMs * 4, 240) : this.rollMs;
+    this._rollTimer = setInterval(() => {
+      if (gen !== this.gen) return;
+      for (const c of this.cells) {
+        if (!c.locked) c.el.textContent = randOf(this._charset(c.kind));
+      }
+    }, rollMs);
+
+    // Ease the displayed clock toward its progress-derived target so it never jumps or
+    // freezes — it creeps between beats, like a film's edited countdown.
+    this._easeTimer = setInterval(() => {
+      if (gen !== this.gen) return;
+      if (this._targetRemaining == null) return;
+      const diff = this._targetRemaining - this._displayRemaining;
+      this._displayRemaining += diff * 0.18; // 18%/tick easing
+      if (Math.abs(diff) < 250) this._displayRemaining = this._targetRemaining;
+      if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(this._displayRemaining);
+      if (this._displayRemaining <= this.crackMs * 0.2) this.el.scene.classList.add('alarm');
+      else this.el.scene.classList.remove('alarm');
+    }, this._reduced ? 400 : 180);
+  }
+
+  /**
+   * Apply a live SessionState pushed by the leader (the bedroom runtime). Maps narrative
+   * progress → cells solved (holding a reserve until the climax) and → the eased clock, and
+   * mirrors DEFCON. Endings resolve the board: annihilation → launch; lockout/understanding
+   * → stand-down.
+   */
+  applyState(s = {}) {
+    if (!this.coupled) return;
+    if (typeof s.defcon === 'number') this.setDefcon(s.defcon);
+
+    const n = this.cells.length;
+    const reserve = Math.max(0, Math.min(this.coupledReserve, n - 1));
+    const solvable = n - reserve;
+
+    // Endings / explicit halts take priority over progress.
+    if (s.status === 'aborted') {
+      this._finish('abort', s.message);
+      return;
+    }
+    if (s.ending === 'annihilation') {
+      this._finish('launch');
+      return;
+    }
+    if (s.ending === 'lockout' || s.ending === 'understanding') {
+      const msg =
+        s.ending === 'understanding'
+          ? 'SEQUENCE HALTED — THE ONLY WINNING MOVE IS NOT TO PLAY'
+          : 'SEQUENCE LOCKED OUT — DEADMAN SWITCH ENGAGED';
+      this._finish('abort', msg);
+      return;
+    }
+
+    // Running: progress drives cells + clock. Prefer explicit progress; fall back to DEFCON.
+    let p = typeof s.progress === 'number' ? s.progress : (5 - (s.defcon ?? 5)) / 4;
+    p = Math.max(0, Math.min(1, p));
+
+    const targetSolved = Math.min(solvable, Math.round(p * solvable));
+    while (this.solvedCount < targetSolved) {
+      this._lockCell(this.solveOrder[this.solvedCount]);
+    }
+    if (this.el.statusBottom && this.solvedCount < n) {
+      this.el.statusBottom.textContent =
+        s.message || `SOLVING… ${n - this.solvedCount} CELLS REMAIN`;
+    }
+
+    // Clock target: (1-p) of the display duration, clamped above a floor so it can't hit
+    // zero before the climax releases the reserve.
+    const minHold = 4000;
+    this._targetRemaining = Math.max(minHold, (1 - p) * this.crackMs);
+  }
+
   /** Close the scene and stop all timers. Does NOT fire onComplete. */
   close() {
     this._stop();
@@ -217,7 +324,8 @@ export class NoradScene {
     clearInterval(this._rollTimer);
     clearTimeout(this._lockTimer);
     clearInterval(this._clockTimer);
-    this._rollTimer = this._lockTimer = this._clockTimer = null;
+    clearInterval(this._easeTimer);
+    this._rollTimer = this._lockTimer = this._clockTimer = this._easeTimer = null;
   }
 
   /** Start (or restart) the brute-force animation from scratch. */
@@ -225,6 +333,7 @@ export class NoradScene {
     this._stop();
     const gen = this.gen;
     this.running = true;
+    this.coupled = false;
     this.el.scene.classList.remove('complete', 'aborted', 'alarm');
     this._buildReadout();
     this.startTime = performance.now();
@@ -272,6 +381,7 @@ export class NoradScene {
     const gen = this.gen;
     this.plan = plan;
     this.running = true;
+    this.coupled = false;
     this.el.scene.classList.remove('complete', 'aborted', 'alarm');
     this._buildReadout();
     if (Array.isArray(plan.order) && plan.order.length === this.cells.length) {
@@ -349,7 +459,7 @@ export class NoradScene {
   }
 
   /** Resolve the scene: 'launch' (all cells solved) or 'abort' (host halted it). */
-  _finish(outcome) {
+  _finish(outcome, message) {
     this._stop();
     if (outcome === 'launch') {
       // Ensure every cell shows its true glyph.
@@ -364,11 +474,15 @@ export class NoradScene {
       this.el.scene.classList.remove('alarm');
       this.el.scene.classList.add('complete');
       if (this.el.clockValue) this.el.clockValue.textContent = '00:00';
-      if (this.el.statusBottom) this.el.statusBottom.textContent = 'SEQUENCE COMPLETE — LAUNCH AUTHORIZED';
+      if (this.el.statusBottom) {
+        this.el.statusBottom.textContent = message || 'SEQUENCE COMPLETE — LAUNCH AUTHORIZED';
+      }
     } else {
       this.el.scene.classList.remove('alarm', 'complete');
       this.el.scene.classList.add('aborted');
-      if (this.el.statusBottom) this.el.statusBottom.textContent = 'SEQUENCE ABORTED — CONNECTION SEVERED';
+      if (this.el.statusBottom) {
+        this.el.statusBottom.textContent = message || 'SEQUENCE ABORTED — CONNECTION SEVERED';
+      }
     }
     if (this.onComplete) {
       try {
