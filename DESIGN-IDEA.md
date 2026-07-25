@@ -274,3 +274,49 @@ Answering these will lock the build plan:
 - The most faithful *and* most buildable game is **Option A: "JOSHUA," a terminal conversation thriller** with a DEFCON state machine and the three signature beats (misidentification, persistence, futility), climaxing in *the only winning move is not to play.*
 - Optionally fold in **Option D's** modern AI-agent framing to make the 1983 warning speak directly to 2026.
 - **Next step:** answer §7, then build the §5 vertical slice.
+
+---
+
+## 9. Status & Roadmap (post-build)
+
+The §5 vertical slice shipped and grew well past it. The §7 questions are now answered:
+**web** (GitHub Pages), **both** determinism modes, a **blend** of eras, delivered as a
+vertical slice that kept expanding, prototyping with **film names** (rename before public
+release). This section is the living backlog — synced to
+[GitHub issues](https://github.com/Ethical-Tech-CoLab/War-Games/issues).
+
+### Built (done)
+
+- ✅ **Vertical slice** — 3 endings + the three signature beats (misidentification,
+  persistence, futility).
+- ✅ **Two determinism modes** — hand-authored scripted graph **and** Live-AI persona over a
+  DEFCON state machine, with graceful fallback to scripted when AI is unavailable.
+- ✅ **Berserk easter egg** — an emergent, unbounded persona (Prof. Rhodes authorization),
+  capped and clearly marked.
+- ✅ **4 identity/name sets** + start-menu dropdown; full `{{token}}` re-skin.
+- ✅ **Admin Console** — exact last prompt + raw response, live config, and per-turn log.
+- ✅ **Telemetry** — per-turn tokens/latency/DEFCON/parse status; JSON export.
+- ✅ **◆ AI marker** on every model-generated line.
+- ✅ **Self-hosted proxy** (`pages-ai-proxy`) on owned **B3IQ GPU** hardware — server-side
+  token injection, CORS/origin allow-list, and **model routing** (cloud GitHub Models vs
+  on-box Ollama: gemma3 / qwen3 / deepseek-r1 / Qwen3-27B).
+- ✅ **Proxy-URL discovery** (`ai-proxy.json`) + auto-publish for a durable pointer.
+- ✅ **Chess mini-game** — deterministic rules + alpha-beta AI (perft-validated), click /
+  type / **voice** input, tone-aware canned commentary, and spoken move announcements.
+- ✅ **Retro polish** — CRT terminal, monitor bezel, monochrome scanline chess board,
+  uppercase machine voice, and TTS pronunciation fixes.
+
+### Next phases (prioritized — most compelling first)
+
+| Pri | Item | Issue |
+|-----|------|-------|
+| **P1** | Educational mode — guided lesson + debrief (leans into the educational-tool framing) | [#2](https://github.com/Ethical-Tech-CoLab/War-Games/issues/2) |
+| **P1** | Public-release re-skin — default to an original name set (IP; see §6) | [#3](https://github.com/Ethical-Tech-CoLab/War-Games/issues/3) |
+| **P1** | Stable proxy endpoint — named Cloudflare tunnel (durable hostname) | [#4](https://github.com/Ethical-Tech-CoLab/War-Games/issues/4) |
+| **P2** | Accessibility & mobile polish (keyboard nav, ARIA, reduced-motion, responsive) | [#5](https://github.com/Ethical-Tech-CoLab/War-Games/issues/5) |
+| **P2** | Chess enhancements — difficulty, SAN, underpromotion, draw claims | [#6](https://github.com/Ethical-Tech-CoLab/War-Games/issues/6) |
+| **P2** | Model picker auto-populated from proxy `/config` | [#7](https://github.com/Ethical-Tech-CoLab/War-Games/issues/7) |
+
+**Later (P3, not yet issues):** narrative/branch expansion beyond the core scenario;
+save/resume + shareable session results; optional (rare, windowed) LLM chess commentary;
+more identity sets; a written case study of the build.

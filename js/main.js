@@ -26,7 +26,6 @@ const els = {
   terminal: document.getElementById('terminal'),
   modeBadge: document.getElementById('mode-badge'),
   restartBtn: document.getElementById('restart-btn'),
-  soundBtn: document.getElementById('sound-btn'),
 };
 
 const LLM_KEY_STORE = 'wargames.llm.apiKey';
@@ -265,12 +264,6 @@ function refreshTelemetryPanel() {
   if (ac.telemetry) ac.telemetry.textContent = telemetry.toText();
 }
 
-els.soundBtn.addEventListener('click', () => {
-  const on = !audio.enabled;
-  audio.setEnabled(on);
-  if (on) audio.unlock();
-  els.soundBtn.textContent = `SOUND: ${on ? 'ON' : 'OFF'}`;
-});
 document.getElementById('ac-telemetry-export').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(telemetry.snapshot(), null, 2)], {
     type: 'application/json',
@@ -402,7 +395,6 @@ ac.aimarker.addEventListener('change', () => {
 ac.sound.addEventListener('change', () => {
   audio.setEnabled(ac.sound.checked);
   if (ac.sound.checked) audio.unlock();
-  els.soundBtn.textContent = `SOUND: ${ac.sound.checked ? 'ON' : 'OFF'}`;
 });
 ac.speed.addEventListener('input', () => {
   SETTINGS.typewriterSpeed = Number(ac.speed.value);

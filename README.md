@@ -19,6 +19,13 @@ the five decisions locked for this prototype:
 Plus **telemetry** for a case study: runtime metrics (time, events, endings, and — in AI
 mode — tokens in/out and latency) are captured locally and exportable as JSON.
 
+The slice kept growing. This build also ships a **Live-AI persona** over a DEFCON state
+machine, a **berserk easter egg**, an in-page **Admin Console** (see the exact prompt/raw
+response and tweak config live), a self-hosted **AI proxy** on owned GPU hardware (cloud vs
+on-device model routing), and a full **chess mini-game** you can play by click, typing, or
+**voice** — with a tone-aware opponent that talks back. See the
+[Status & Roadmap](DESIGN-IDEA.md#9-status--roadmap-post-build) for the full list.
+
 ---
 
 ## Architecture — as an educational tool
@@ -194,6 +201,17 @@ never blocked.
 4. Reach one of **three endings**: _Zero-Sum_ (annihilation), _Deadman's Switch_ (lockout),
    or _The Only Winning Move_ (understanding).
 
+### Extras
+
+- **Admin Console** — click **CONSOLE** in the status bar to see the exact last prompt and
+  raw AI response, adjust live config (model, temperature, sound, speed, AI marker), review
+  the per-turn log, and read/export session telemetry.
+- **Chess** — click the ♟ button to open the chess panel. Move by clicking squares, typing
+  (`e2e4` or `e4`), or **voice** (🎤 SPEAK). The opponent comments and announces moves aloud;
+  tone is configurable under **Chess Config** in the Admin Console.
+- **Berserk easter egg** — a hidden authorization flips the persona into an emergent,
+  unbounded mode. (Left as a discovery.)
+
 ---
 
 ## Replaceable names (config)
@@ -219,10 +237,10 @@ in [js/config.js](js/config.js) and are selectable from the start-menu dropdown.
 
 Two layers, both for the case study:
 
-- **Runtime (in-app):** click **TELEMETRY** in the status bar for a live panel — duration,
-  mode, identity set, model, min DEFCON reached, choices, endings, and in AI mode the
-  **tokens in/out**, total tokens, and average latency per request. **EXPORT JSON** saves a
-  full session record. Nothing leaves your device.
+- **Runtime (in-app):** open the **Admin Console** (**CONSOLE** in the status bar) for a
+  live telemetry panel — duration, mode, identity set, model, min DEFCON reached, choices,
+  endings, and in AI mode the **tokens in/out**, total tokens, and average latency per
+  request. **EXPORT JSON** saves a full session record. Nothing leaves your device.
 - **Development (this build):** see [CASE-STUDY.md](CASE-STUDY.md) and
   [telemetry/dev-telemetry.json](telemetry/dev-telemetry.json) for models used, time on
   task, and token accounting for producing this prototype.
@@ -232,25 +250,37 @@ Two layers, both for the case study:
 ## Project structure
 
 ```text
-index.html            Shell: menu, status bar, terminal, telemetry panel
-css/terminal.css      CRT green-on-black aesthetic
-js/config.js          Name sets, settings, {{token}} substitution
+index.html            Shell: menu, status bar, terminal, Admin Console, chess panel
+css/terminal.css      CRT green-on-black aesthetic + Admin Console + chess board
+js/config.js          Name sets, settings, {{token}} substitution, model catalog
 js/dialogue.js        Hand-authored branching graph (scripted mode)
 js/telemetry.js       Local runtime telemetry (time / events / tokens)
-js/llm.js             OpenAI-compatible browser client + persona system prompt
-js/engine.js          DEFCON state machine; runs scripted or live-AI mode
+js/llm.js             OpenAI-compatible browser client + persona/berserk prompts
+js/engine.js          DEFCON state machine; runs scripted, live-AI, or berserk mode
 js/terminal.js        Terminal view: typewriter, choices, prompts, DEFCON ladder
-js/main.js            Menu wiring + telemetry panel + boot
-DESIGN-IDEA.md        Research + concept options that led here
+js/audio.js           Sound FX + text-to-speech (spoken-text pipeline)
+js/chess.js           Chess rules + alpha-beta AI (perft-validated)
+js/chess-ui.js        Chess panel: click/type/voice input, commentary, announcements
+js/main.js            Menu wiring + Admin Console + boot
+serve.mjs             Local dev server + same-origin proxy (port 8787)
+ai-proxy.json         Proxy-URL discovery document
+DESIGN-IDEA.md        Research, concept options, and the Status & Roadmap backlog
+CHESS-DESIGN.md       Chess mini-game design doc
 CASE-STUDY.md         Development telemetry for the case study
 ```
 
 ---
 
-## Extending toward a full build
+## Roadmap
 
-- Add scenes/branches in `js/dialogue.js` (pure data — no code changes needed).
-- Deepen the modern AI-agent framing (Option D in DESIGN-IDEA.md) by expanding the persona
-  system prompt in `js/llm.js`.
-- Add a serverless proxy for production LLM key safety.
-- Layer sound (modem handshake, key clicks) and the NORAD "big board" as a later beat.
+The live backlog and priorities are tracked in
+[DESIGN-IDEA.md §9 — Status & Roadmap](DESIGN-IDEA.md#9-status--roadmap-post-build) and synced
+to [GitHub issues](https://github.com/Ethical-Tech-CoLab/War-Games/issues). Most compelling
+next moves:
+
+- **P1** — [Educational mode: guided lesson + debrief](https://github.com/Ethical-Tech-CoLab/War-Games/issues/2)
+- **P1** — [Public-release re-skin (original name set)](https://github.com/Ethical-Tech-CoLab/War-Games/issues/3)
+- **P1** — [Stable proxy endpoint (named tunnel)](https://github.com/Ethical-Tech-CoLab/War-Games/issues/4)
+- **P2** — [Accessibility & mobile polish](https://github.com/Ethical-Tech-CoLab/War-Games/issues/5)
+- **P2** — [Chess enhancements (difficulty, SAN, underpromotion)](https://github.com/Ethical-Tech-CoLab/War-Games/issues/6)
+- **P2** — [Model picker auto-populated from proxy /config](https://github.com/Ethical-Tech-CoLab/War-Games/issues/7)
