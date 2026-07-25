@@ -72,6 +72,9 @@ export class NoradScene {
 
     this.names = opts.names || null;
     this.onComplete = opts.onComplete || null;
+    this.audio = opts.audio || null; // scene FX (locks/alerts/launch) + spoken narration
+    this._prevDefconSound = 5; // last DEFCON we sounded an alert for
+    this._alarmSounded = false; // klaxon plays once when the clock tips into alarm
     this.defcon = typeof opts.defcon === 'number' ? opts.defcon : 2;
 
     this.code = (opts.code || 'CPE1704TKS').toUpperCase();
@@ -138,8 +141,21 @@ export class NoradScene {
 
   /** Keep the board's DEFCON readout in sync with the engine. */
   setDefcon(value) {
+    if (this.audio && value < this._prevDefconSound) this.audio.alert(); // escalation cue
+    this._prevDefconSound = value;
     this.defcon = value;
     if (this.el.defconValue) this.el.defconValue.textContent = String(value);
+  }
+
+  /** Add the red alarm state, sounding the klaxon once when it first engages. */
+  _engageAlarm() {
+    if (!this.el.scene.classList.contains('alarm')) {
+      this.el.scene.classList.add('alarm');
+      if (!this._alarmSounded && this.audio) {
+        this.audio.klaxon();
+        this._alarmSounded = true;
+      }
+    }
   }
 
   /** Build the readout cells from code + mask. Groups are separated by gap columns. */
@@ -227,6 +243,7 @@ export class NoradScene {
     this.running = true;
     this.coupled = true;
     this.el.scene.classList.remove('complete', 'aborted', 'alarm');
+    this._alarmSounded = false;
     this._buildReadout();
     this._displayRemaining = this.crackMs;
     this._targetRemaining = this.crackMs;
@@ -251,7 +268,7 @@ export class NoradScene {
       this._displayRemaining += diff * 0.18; // 18%/tick easing
       if (Math.abs(diff) < 250) this._displayRemaining = this._targetRemaining;
       if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(this._displayRemaining);
-      if (this._displayRemaining <= this.crackMs * 0.2) this.el.scene.classList.add('alarm');
+      if (this._displayRemaining <= this.crackMs * 0.2) this._engageAlarm();
       else this.el.scene.classList.remove('alarm');
     }, this._reduced ? 400 : 180);
   }
@@ -338,6 +355,7 @@ export class NoradScene {
       line.className = 'norad-narration-line';
       line.textContent = text;
       this.el.narration.appendChild(line);
+      if (this.audio) this.audio.speak(text);
     }
     clearTimeout(this._narrationTimer);
     if (autoClose) {
@@ -374,6 +392,7 @@ export class NoradScene {
     this.running = true;
     this.coupled = false;
     this.el.scene.classList.remove('complete', 'aborted', 'alarm');
+    this._alarmSounded = false;
     this._buildReadout();
     this.startTime = performance.now();
     if (this.el.statusBottom) this.el.statusBottom.textContent = 'STAND BY.';
@@ -422,6 +441,7 @@ export class NoradScene {
     this.running = true;
     this.coupled = false;
     this.el.scene.classList.remove('complete', 'aborted', 'alarm');
+    this._alarmSounded = false;
     this._buildReadout();
     if (Array.isArray(plan.order) && plan.order.length === this.cells.length) {
       this.solveOrder = plan.order.slice();
@@ -466,7 +486,7 @@ export class NoradScene {
     }
 
     if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(remaining);
-    if (remaining <= dur * 0.2) this.el.scene.classList.add('alarm');
+    if (remaining <= dur * 0.2) this._engageAlarm();
     if (this.el.statusBottom && this.solvedCount < n) {
       this.el.statusBottom.textContent = `SOLVING… ${n - this.solvedCount} CELLS REMAIN`;
     }
@@ -479,7 +499,7 @@ export class NoradScene {
     const elapsed = performance.now() - this.startTime;
     const remaining = Math.max(0, this.crackMs - elapsed);
     if (this.el.clockValue) this.el.clockValue.textContent = fmtClock(remaining);
-    if (remaining <= this.crackMs * 0.2) this.el.scene.classList.add('alarm');
+    if (remaining <= this.crackMs * 0.2) this._engageAlarm();
   }
 
   _lockCell(index) {
@@ -489,6 +509,7 @@ export class NoradScene {
     c.el.textContent = c.target;
     c.el.classList.remove('rolling');
     c.el.classList.add('locked', 'flash');
+    if (this.audio) this.audio.tick();
     setTimeout(() => c.el.classList.remove('flash'), 400);
     this.solvedCount += 1;
     this._updateSolved();
@@ -512,6 +533,7 @@ export class NoradScene {
       this._updateSolved();
       this.el.scene.classList.remove('alarm');
       this.el.scene.classList.add('complete');
+      if (this.audio) this.audio.klaxon();
       if (this.el.clockValue) this.el.clockValue.textContent = '00:00';
       if (this.el.statusBottom) {
         this.el.statusBottom.textContent = message || 'SEQUENCE COMPLETE — LAUNCH AUTHORIZED';

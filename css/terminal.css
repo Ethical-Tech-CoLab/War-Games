@@ -1463,6 +1463,12 @@ input:focus {
   border-color: var(--amber);
   letter-spacing: 2px;
 }
+/* Muted audio button reads as de-emphasized. */
+.ghost-btn.muted {
+  color: var(--fg-dim);
+  border-color: var(--fg-dim);
+  opacity: 0.7;
+}
 #room-badge:hover {
   background: var(--amber);
   color: #000;

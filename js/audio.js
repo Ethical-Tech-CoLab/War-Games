@@ -60,6 +60,38 @@ export class AudioFx {
     }
   }
 
+  // ---------- Scene FX (NORAD big board: locks / alerts / launch) ----------
+  /** A short high tick — a code cell locking in. */
+  tick() {
+    if (!this.enabled || !this.ctx) return;
+    this._tone(1600, this.ctx.currentTime + 0.01, 0.05, 0.05, 'square');
+  }
+
+  /** A two-note alert — a DEFCON step-down / new warning. */
+  alert() {
+    if (!this.enabled) return;
+    this.unlock();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.02;
+    this._tone(880, t, 0.12, 0.08, 'square');
+    this._tone(620, t + 0.14, 0.18, 0.08, 'square');
+  }
+
+  /** A rising/falling klaxon wail — alarm onset / launch. */
+  klaxon() {
+    if (!this.enabled) return;
+    this.unlock();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    let t = ctx.currentTime + 0.02;
+    for (let i = 0; i < 3; i += 1) {
+      this._tone(440, t, 0.3, 0.11, 'sawtooth');
+      this._tone(560, t + 0.32, 0.3, 0.11, 'sawtooth');
+      t += 0.66;
+    }
+  }
+
   // ---------- Synthesized modem connect sequence ----------
   async playModem() {
     if (!this.enabled) return;

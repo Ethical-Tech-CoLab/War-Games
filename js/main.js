@@ -38,13 +38,15 @@ const audio = new AudioFx();
 const terminal = new Terminal(root);
 terminal.setAudio(audio);
 const chess = new ChessPanel(root, { audio });
-const norad = new NoradScene(root);
+const norad = new NoradScene(root, { audio });
 let chessStarted = false;
 let telemetryTimer = null;
 let engine = null; // the current GameEngine (leader/runtime session)
 let liveSession = null; // the always-on broadcast session (medium); every game gets a room
 let activeNameSetKey = DEFAULT_NAME_SET;
 let viewMode = 'single'; // single | split | multi (viewer mode on this device)
+let mirrorPrimed = false; // BEDROOM-mirror TTS: first render primes, then speaks new lines
+let lastMirrorKey = null; // key of the last mirror line we've spoken
 
 // ---------- Populate menu ----------
 function populateNameSets() {
@@ -430,8 +432,7 @@ ac.aimarker.addEventListener('change', () => {
   root.classList.toggle('hide-ai-marker', !ac.aimarker.checked);
 });
 ac.sound.addEventListener('change', () => {
-  audio.setEnabled(ac.sound.checked);
-  if (ac.sound.checked) audio.unlock();
+  setAudioEnabled(ac.sound.checked);
 });
 ac.speed.addEventListener('input', () => {
   SETTINGS.typewriterSpeed = Number(ac.speed.value);
@@ -467,6 +468,44 @@ document.getElementById('chess-btn').addEventListener('click', () => {
 document.getElementById('norad-btn').addEventListener('click', () => {
   norad.toggle();
 });
+
+// ---------- Audio on/off (accessible on the terminal AND the NORAD scene) ----------
+// Followers opened by URL never clicked CONNECT, so browsers block their audio until a
+// gesture. A one-time first-gesture unlock covers that; the AUDIO buttons let any screen
+// (bedroom or a parallel NORAD/BEDROOM follower) mute or (re)enable sound + voice.
+const AUDIO_PREF = 'wargames.audio';
+const audioBtns = [document.getElementById('audio-btn'), document.getElementById('norad-audio')];
+function updateAudioButtons() {
+  const label = audio.enabled ? 'AUDIO ON' : 'AUDIO OFF';
+  for (const b of audioBtns) {
+    if (!b) continue;
+    b.textContent = label;
+    b.classList.toggle('muted', !audio.enabled);
+  }
+  if (ac.sound) ac.sound.checked = audio.enabled;
+}
+function setAudioEnabled(on) {
+  audio.setEnabled(on);
+  if (on) audio.unlock();
+  try { localStorage.setItem(AUDIO_PREF, on ? '1' : '0'); } catch { /* ignore */ }
+  updateAudioButtons();
+}
+for (const b of audioBtns) if (b) b.addEventListener('click', () => setAudioEnabled(!audio.enabled));
+
+// Restore the saved audio preference, then unlock on the very first user gesture (so a
+// URL-booted follower starts sounding as soon as the operator taps/clicks anything).
+try {
+  const v = localStorage.getItem(AUDIO_PREF);
+  if (v !== null) audio.enabled = v === '1';
+} catch { /* ignore */ }
+updateAudioButtons();
+function firstGestureUnlock() {
+  if (audio.enabled) audio.unlock();
+  window.removeEventListener('pointerdown', firstGestureUnlock);
+  window.removeEventListener('keydown', firstGestureUnlock);
+}
+window.addEventListener('pointerdown', firstGestureUnlock);
+window.addEventListener('keydown', firstGestureUnlock);
 
 // ---------- Multi-device broadcast, rooms, scenes & viewer modes ----------
 // Every launched game broadcasts a stable ROOM over the proxy /sync KV (#1); any number of
@@ -754,6 +793,35 @@ function renderMirrorLines(lines) {
   }
   const scroller = out.closest('.terminal') || out.parentElement;
   if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  speakNewMirrorLines(lines);
+}
+
+// Speak the machine/persona dialogue as it arrives on a BEDROOM mirror, so a parallel screen
+// plays out the scene with voice. The first render only PRIMES (no speak) so a follower that
+// joins mid-session doesn't dump the whole backlog at once — it voices only new lines after.
+const MIRROR_VOICE = new Set(['system', 'alert', 'ending', 'echo', 'critical']);
+function speakNewMirrorLines(lines) {
+  if (!lines.length) return;
+  const key = (ln) => `${ln.c}|${ln.t}`;
+  if (!mirrorPrimed) {
+    mirrorPrimed = true;
+    lastMirrorKey = key(lines[lines.length - 1]);
+    return;
+  }
+  if (!audio.enabled) {
+    lastMirrorKey = key(lines[lines.length - 1]);
+    return;
+  }
+  let start = 0;
+  if (lastMirrorKey) {
+    const idx = lines.map(key).lastIndexOf(lastMirrorKey);
+    start = idx >= 0 ? idx + 1 : Math.max(0, lines.length - 1);
+  }
+  for (let i = start; i < lines.length; i += 1) {
+    const cls = String(lines[i].c || '').split(/\s+/);
+    if (cls.some((c) => MIRROR_VOICE.has(c))) audio.speak(lines[i].t);
+  }
+  lastMirrorKey = key(lines[lines.length - 1]);
 }
 
 function planKey(p) {
