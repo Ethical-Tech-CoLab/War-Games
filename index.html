@@ -82,6 +82,16 @@
           </div>
 
           <button class="primary-btn" id="start-btn" type="button">CONNECT</button>
+
+          <!-- Second-screen join: type a short ROOM code (from the other device's PAIR panel)
+               to run this device as the NORAD big board — no giant link to retype. -->
+          <div class="join-row">
+            <span class="join-label">SECOND SCREEN?</span>
+            <input id="join-room" class="join-input" type="text" spellcheck="false"
+                   autocomplete="off" placeholder="NORAD ROOM CODE, e.g. TANGO-96" />
+            <button class="ghost-btn" id="join-btn" type="button">JOIN</button>
+          </div>
+          <p class="field-hint" id="join-hint"></p>
         </div>
       </div>
 
@@ -254,8 +264,9 @@
         <div class="pair-panel">
           <h2 class="pair-title">PAIR NORAD DISPLAY</h2>
           <p class="pair-sub">
-            Open this link on the <strong>second device</strong> (the NORAD big board). Both
-            screens run one shared, time-synced sequence — like the film's intercutting.
+            On the <strong>second device</strong> (the NORAD big board), either open the link
+            below <em>or</em> — easier — just enter the short <strong>ROOM</strong> code on its
+            start screen. Both screens then run one shared, live-synced sequence.
           </p>
           <label class="pair-field">
             <span class="pair-label">FOLLOWER LINK</span>

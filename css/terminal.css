@@ -10,6 +10,21 @@
   --red: #ff4444;
   --echo: #7fe0c0; /* cool phosphor green for "echo" lines (was blue) */
   --font: "Cascadia Code", "Consolas", "SFMono-Regular", ui-monospace, monospace;
+  /* Status-bar control sizing — one source of truth so every button box matches (the chess
+     glyph no longer sits 1–2px taller). Scales responsively at the breakpoints below. */
+  --btn-h: 28px;
+  --btn-font: 0.75rem;
+}
+
+/* Responsive control sizing: small phones ↓, large boards (Surface Hub) ↑. */
+@media (max-width: 600px) {
+  :root { --btn-h: 26px; --btn-font: 0.7rem; }
+}
+@media (min-width: 1600px) {
+  :root { --btn-h: 34px; --btn-font: 0.9rem; }
+}
+@media (min-width: 2400px) {
+  :root { --btn-h: 44px; --btn-font: 1.1rem; }
 }
 
 * {
@@ -205,11 +220,26 @@ body {
   }
 }
 
+/* Honor reduced-motion: pause the always-on CRT effects. This is both an accessibility win
+   and makes UI automation deterministic (Playwright's stability check relies on rAF, which
+   never settles while decorative animations run every frame). */
+@media (prefers-reduced-motion: reduce) {
+  .crt::after,
+  .flicker,
+  .monitor-led,
+  .scanlines {
+    animation: none !important;
+  }
+}
+
 /* ---------- Status bar ---------- */
 .statusbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px 10px;
+  flex-wrap: wrap; /* on narrow screens the controls wrap to a second row instead of being
+                      clipped by the CRT's overflow:hidden (keeps every button reachable) */
   padding: 8px 16px;
   border-bottom: 1px solid var(--fg-dim);
   z-index: 40;
@@ -251,6 +281,8 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .mode-badge {
@@ -261,15 +293,28 @@ body {
 
 /* ---------- Buttons ---------- */
 .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--btn-h);
+  box-sizing: border-box;
   background: transparent;
   color: var(--fg);
   border: 1px solid var(--fg-dim);
-  padding: 4px 10px;
+  padding: 0 10px;
   font-family: var(--font);
-  font-size: 0.75rem;
+  font-size: var(--btn-font);
+  line-height: 1;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
+}
+
+/* The chess pawn glyph renders taller than text; a fixed box height + centered flex keeps
+   every status button identical, and a slightly larger glyph stays legible without growing
+   the box. */
+#chess-btn {
+  font-size: calc(var(--btn-font) + 0.35rem);
 }
 
 .ghost-btn:hover {
@@ -852,16 +897,18 @@ input:focus {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 380px;
-  max-width: 94vw;
+  /* Responsive: comfortable on phones (near full width) up to Surface Hub-class displays. */
+  width: clamp(320px, 34vw, 760px);
+  max-width: 96vw;
   z-index: 56;
   display: flex;
   flex-direction: column;
   background: rgba(1, 8, 1, 0.975);
   border-left: 1px solid var(--fg-dim);
   box-shadow: -10px 0 34px rgba(0, 0, 0, 0.55);
-  font-size: 0.8rem;
+  font-size: clamp(0.8rem, 1vw, 1.05rem);
   padding-bottom: 10px;
+  overflow-y: auto;
 }
 
 .cp-head {
@@ -892,7 +939,9 @@ input:focus {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  width: min(94%, 320px);
+  /* Scale with BOTH the panel width and the viewport height so it stays a large, legible
+     square on phones and on very large/tall displays alike. */
+  width: min(92%, 72vh);
   aspect-ratio: 1;
   margin: 6px auto;
   border: 1px solid var(--fg-dim);
@@ -914,7 +963,7 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.55rem;
+  font-size: clamp(1.3rem, 6.2vmin, 4rem);
   line-height: 1;
   border: 1px solid rgba(31, 156, 64, 0.22);
   cursor: pointer;
@@ -1336,8 +1385,10 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(1, 8, 3, 0.82);
-  backdrop-filter: blur(2px);
+  /* Solid scrim (no backdrop-filter): blurring the continuously-animating CRT behind it kept
+     the composited layer perpetually repainting, which made UI automation never see the
+     panel's buttons as "stable". A near-opaque scrim gives the same focus without that. */
+  background: rgba(1, 8, 3, 0.94);
   padding: 20px;
 }
 .pair-panel {
@@ -1394,6 +1445,13 @@ input:focus {
 .pair-meta strong {
   color: var(--fg-bright);
 }
+/* Fixed-width so the ticking countdown never reflows the panel (keeps buttons steady). */
+#pair-countdown {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 .pair-actions {
   display: flex;
   gap: 8px;
@@ -1428,4 +1486,32 @@ input:focus {
   font-size: 0.72rem;
   color: var(--amber);
   letter-spacing: 1px;
+}
+
+/* Second-screen join field on the start menu (join by short ROOM code). */
+.join-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fg-dim);
+  flex-wrap: wrap;
+}
+.join-label {
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: var(--fg-dim);
+}
+.join-input {
+  flex: 1;
+  min-width: 160px;
+  background: #010601;
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  padding: 8px 10px;
+  text-transform: uppercase;
 }

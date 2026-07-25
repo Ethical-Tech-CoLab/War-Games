@@ -161,6 +161,21 @@ export class SyncSession {
     return new SyncSession({ mode, role: payload.role || 'follower', payload, alignUrl, syncBase });
   }
 
+  /**
+   * Follower factory by ROOM CODE (MEDIUM only). Instead of a huge ?sync= link, the follower
+   * just types the short room code (e.g. "TANGO-96"); we fetch the full SyncState the leader
+   * already published to the /sync KV and run from that. Throws if the room isn't live.
+   */
+  static async joinByRoom(room, { alignUrl, syncBase = '' } = {}) {
+    const base = String(syncBase).replace(/\/$/, '');
+    const code = String(room).trim().toUpperCase();
+    const res = await fetch(`${base}/sync/${encodeURIComponent(code)}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Room "${code}" is not live. Enable LIVE SYNC on the first device.`);
+    const payload = await res.json();
+    if (!payload.room) payload.room = code;
+    return new SyncSession({ mode: 'medium', role: 'follower', payload, alignUrl, syncBase: base });
+  }
+
   /** Align this device's clock to the shared reference. Safe to call once at start. */
   async align() {
     this.offsetMs = await estimateClockOffset(this.alignUrl);

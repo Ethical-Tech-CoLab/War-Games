@@ -635,11 +635,27 @@ function planKey(p) {
  * If the page is opened with a ?sync=<payload> param, this device is the NORAD FOLLOWER: a
  * pure big-board display. Skip the menu and run the scheduled crack so it stays calibrated
  * with the leader (bedroom) device. ?live=1 selects the MEDIUM tier (live leader pushes);
- * otherwise it runs the EASY deterministic timeline.
+ * otherwise it runs the EASY deterministic timeline. ?room=CODE joins a live room by its
+ * short code (no giant link) by fetching the published state.
  * @returns {Promise<boolean>} true if it booted as a follower
  */
 async function maybeBootstrapFollower() {
   const params = new URLSearchParams(location.search);
+
+  // Join-by-room: the lightweight path (short code, no huge hash).
+  const roomParam = params.get('room');
+  if (roomParam) {
+    try {
+      const session = await SyncSession.joinByRoom(roomParam, { syncBase: resolveSyncBase() });
+      els.menuOverlay.hidden = true;
+      await runFollower(session);
+      return true;
+    } catch (e) {
+      console.warn('join by room failed:', e);
+      return false; // leave the menu up so the user can retry via the JOIN field
+    }
+  }
+
   const syncParam = params.get('sync');
   if (!syncParam) return false;
   const mode = params.get('live') === '1' ? 'medium' : 'easy';
@@ -654,6 +670,33 @@ async function maybeBootstrapFollower() {
   await runFollower(session);
   return true;
 }
+
+// Start-menu JOIN: run this device as the NORAD board by typing the short room code.
+const joinEls = {
+  input: document.getElementById('join-room'),
+  btn: document.getElementById('join-btn'),
+  hint: document.getElementById('join-hint'),
+};
+async function joinByRoomCode() {
+  const room = (joinEls.input.value || '').trim();
+  if (!room) {
+    joinEls.hint.textContent = 'Enter the room code shown on the first device (PAIR panel).';
+    return;
+  }
+  joinEls.hint.textContent = `Joining ${room.toUpperCase()}…`;
+  try {
+    const session = await SyncSession.joinByRoom(room, { syncBase: resolveSyncBase() });
+    audio.unlock(); // this click is a valid user gesture for audio
+    els.menuOverlay.hidden = true;
+    await runFollower(session);
+  } catch (e) {
+    joinEls.hint.textContent = e.message || 'Could not join that room.';
+  }
+}
+joinEls.btn.addEventListener('click', joinByRoomCode);
+joinEls.input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') joinByRoomCode();
+});
 
 els.restartBtn.addEventListener('click', () => {
   stopTelemetryTicker();
