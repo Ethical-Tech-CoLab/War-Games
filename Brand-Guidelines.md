@@ -53,6 +53,21 @@ Defined in `:root` in [css/terminal.css](css/terminal.css#L3). Edit via the insp
 NORAD also aliases `--norad-accent: var(--fg-bright)`, `--norad-amber: var(--amber)`,
 `--norad-red: var(--red)` ([css/terminal.css](css/terminal.css#L1285)) so the board stays on-palette.
 
+### CRT treatment (shared)
+
+One source of truth for the phosphor bleed + scanlines, so every surface reads as the same
+1983 green screen. Reference these — never re-hardcode a glow.
+
+| Token | Value | Role |
+|---|---|---|
+| `--glow-rgb` | `51, 255, 102` | Phosphor green (`--fg`) as RGB, for `rgba(var(--glow-rgb), α)` glows. |
+| `--glow-soft` | `0 0 4px rgba(var(--glow-rgb), 0.4)` | Ambient text bleed (terminal body, chess panel). |
+| `--glow` | `0 0 8px rgba(var(--glow-rgb), 0.6)` | Emphasis bleed (system/status voice, input focus). |
+| `--scanline` | repeating 1px dark line every 4px | The CRT scanline overlay (`.scanlines`, chess panel). |
+
+Adopted by `.output`, `.line.system`, `.scanlines`, and the whole chess panel (status, input,
+mic, log) so the chess board is the same terminal, not a clean modern surface.
+
 ### Typography
 
 - **Family (only one):** `--font: "Cascadia Code", "Consolas", "SFMono-Regular", ui-monospace, monospace`.
@@ -110,7 +125,7 @@ proposed token fix; tackle them when doing a polish pass.
 
 | # | Finding | Where | Proposed fix |
 |---|---|---|---|
-| B1 | **Phosphor glow is hardcoded** as `rgba(51,255,102,α)` in ~40 `box-shadow`/`text-shadow` rules instead of deriving from `--fg`. Changing the brand green does **not** update the glows. | throughout [css/terminal.css](css/terminal.css) | Add `--glow-rgb: 51 255 102;` and use `rgba(var(--glow-rgb) / α)` (or `color-mix`) so glow tracks `--fg`. |
+| B1 | **Phosphor glow is hardcoded** as `rgba(51,255,102,α)` in ~40 `box-shadow`/`text-shadow` rules instead of deriving from `--fg`. Changing the brand green does **not** update the glows. | throughout [css/terminal.css](css/terminal.css) | 🟡 *Partly done* — `--glow-rgb`/`--glow-soft`/`--glow` tokens added and adopted by the terminal body + chess panel; remaining bespoke glows (alert/critical/echo/board) still to migrate. |
 | B2 | **Panel fill alpha drifts** (`rgba(2,12,2,0.9)` / `0.94` / `0.95` / `0.975`). | menu, wiki, console, drawers | Introduce `--panel-bg` and `--panel-scrim` tokens; apply everywhere. |
 | B3 | **Border color sometimes inlined** as `rgba(31,156,64,α)` (that is `--fg-dim` with alpha) rather than the token. | chess, drawers | Use `color-mix(in srgb, var(--fg-dim) N%, transparent)`. |
 | B4 | **Stray literal hexes** (`#010601`, `#041204`, `#6ad38a`, `#4f6b5a`, `#cfffe0`, `#eaffee`). | terminal bg, endings | Promote the recurring ones (`#010601` input bg, `#041204` CRT core) to tokens `--input-bg`, `--crt-core`. |

@@ -10,6 +10,18 @@
   --red: #ff4444;
   --echo: #7fe0c0; /* cool phosphor green for "echo" lines (was blue) */
   --font: "Cascadia Code", "Consolas", "SFMono-Regular", ui-monospace, monospace;
+  /* Shared CRT treatment — one source of truth for the phosphor bleed + scanlines so every
+     surface (terminal body, system lines, chess panel) reads as the same 1983 green screen. */
+  --glow-rgb: 51, 255, 102; /* phosphor green (--fg #33ff66) as RGB for glows */
+  --glow-soft: 0 0 4px rgba(var(--glow-rgb), 0.4); /* ambient text bleed (terminal body) */
+  --glow: 0 0 8px rgba(var(--glow-rgb), 0.6); /* emphasis bleed (system / status voice) */
+  --scanline: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.28) 3px,
+    rgba(0, 0, 0, 0.28) 4px
+  );
   /* Status-bar control sizing — one source of truth so every button box matches (the chess
      glyph no longer sits 1–2px taller). Scales responsively at the breakpoints below. */
   --btn-h: 28px;
@@ -186,13 +198,7 @@ body {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.28) 3px,
-    rgba(0, 0, 0, 0.28) 4px
-  );
+  background: var(--scanline);
   z-index: 50;
   mix-blend-mode: multiply;
 }
@@ -744,7 +750,7 @@ input:focus {
 .output {
   white-space: pre-wrap;
   line-height: 1.5;
-  text-shadow: 0 0 4px rgba(51, 255, 102, 0.4);
+  text-shadow: var(--glow-soft);
 }
 
 .line {
@@ -763,7 +769,7 @@ input:focus {
 
 .line.system {
   color: var(--fg-bright);
-  text-shadow: 0 0 8px rgba(51, 255, 102, 0.6);
+  text-shadow: var(--glow);
 }
 
 .line.narrator {
@@ -1195,9 +1201,12 @@ input:focus {
   z-index: 56;
   display: flex;
   flex-direction: column;
-  background: rgba(1, 8, 1, 0.975);
+  /* CRT texture: reuse the shared scanline + phosphor-bleed tokens so the panel reads as the
+     same 1983 green terminal (it sits ABOVE the global .scanlines layer, so it carries its own). */
+  background: var(--scanline), rgba(1, 8, 1, 0.975);
   border-left: 1px solid var(--fg-dim);
   box-shadow: -10px 0 34px rgba(0, 0, 0, 0.55);
+  text-shadow: var(--glow-soft);
   /* The panel is its own size container: every child below sizes off the PANEL width (cqw),
      not the viewport, so the board and text scale with the panel however it is docked. */
   container-type: inline-size;
@@ -1226,12 +1235,12 @@ input:focus {
 }
 .cp-status {
   padding: 8px 12px;
-  color: var(--amber);
+  color: var(--fg-bright);
   letter-spacing: 1px;
   min-height: 1.4em;
   font-size: clamp(0.7rem, 3.4cqw, 1.05rem);
   text-transform: uppercase;
-  text-shadow: 0 0 6px rgba(255, 204, 51, 0.4); /* match the terminal's amber phosphor glow */
+  text-shadow: var(--glow); /* adopts the terminal's system-voice bleed */
 }
 
 .cp-board {
@@ -1305,12 +1314,14 @@ input:focus {
   font-family: var(--font);
   font-size: var(--btn-font);
   letter-spacing: 1px;
+  text-transform: uppercase; /* type in the terminal's ALL-CAPS voice */
+  box-shadow: inset 0 0 10px rgba(var(--glow-rgb), 0.06); /* faint phosphor bleed, not a clean field */
   padding: 0 10px;
 }
 #cp-move.cp-move:focus {
   outline: none;
   border-color: var(--fg);
-  box-shadow: 0 0 8px rgba(51, 255, 102, 0.4);
+  box-shadow: var(--glow);
 }
 #cp-move.cp-move::placeholder {
   color: var(--fg-dim);
@@ -1370,6 +1381,11 @@ input:focus {
   width: calc(var(--btn-h) - 4px);
   height: calc(var(--btn-h) - 4px);
   vertical-align: middle;
+  /* Blocky strokes + phosphor bleed so the mic reads as a chunky terminal glyph, not a clean
+     modern icon (adopts the shared --glow color). */
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  filter: drop-shadow(0 0 3px rgba(var(--glow-rgb), 0.6));
 }
 #cp-mic.on .mic-ico {
   animation: micpulse 1s ease-in-out infinite;
