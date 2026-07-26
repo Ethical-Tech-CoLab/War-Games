@@ -23,10 +23,10 @@ import { SETTINGS } from './config.js';
 
 const PIECE_NAME = { p: 'PAWN', n: 'KNIGHT', b: 'BISHOP', r: 'ROOK', q: 'QUEEN', k: 'KING' };
 
-// Terminal-green retro mic (inline SVG, currentColor) so the voice button matches the
-// phosphor aesthetic instead of a color emoji. Used for both button states.
+// Terminal-green retro mic (inline SVG, currentColor) — a SOLID monochrome silhouette so it
+// reads like the chess-piece glyphs (not a thin modern outline). Used for both button states.
 const MIC_SVG =
-  '<svg class="mic-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>';
+  '<svg class="mic-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0h-2a4.5 4.5 0 0 1-9 0z"/><rect x="11" y="17" width="2" height="3.6"/><rect x="7.5" y="20.6" width="9" height="2" rx="1"/></svg>';
 
 // Optional spoken commentary, in the same voice as the current session. Picked by event
 // (checkmate/stalemate > check > capture > plain move) and by tone.

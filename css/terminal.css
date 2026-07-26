@@ -194,12 +194,15 @@ body {
 }
 
 /* Scanline + flicker overlays for CRT feel */
+/* THE global CRT glass: one scanline layer drawn OVER every surface (terminal, chess panel,
+   NORAD, menus, console) so the low-fi 'lines through the lettering' look is identical
+   everywhere text appears. It sits above the highest panel (z 70) and never blocks clicks. */
 .scanlines {
   pointer-events: none;
   position: absolute;
   inset: 0;
   background: var(--scanline);
-  z-index: 50;
+  z-index: 100;
   mix-blend-mode: multiply;
 }
 
@@ -1201,9 +1204,9 @@ input:focus {
   z-index: 56;
   display: flex;
   flex-direction: column;
-  /* CRT texture: reuse the shared scanline + phosphor-bleed tokens so the panel reads as the
-     same 1983 green terminal (it sits ABOVE the global .scanlines layer, so it carries its own). */
-  background: var(--scanline), rgba(1, 8, 1, 0.975);
+  /* Reuse the shared phosphor-bleed token so text glows like the terminal; the scanline
+     'lines through the lettering' come from the single global .scanlines glass (z 100). */
+  background: rgba(1, 8, 1, 0.975);
   border-left: 1px solid var(--fg-dim);
   box-shadow: -10px 0 34px rgba(0, 0, 0, 0.55);
   text-shadow: var(--glow-soft);
@@ -1257,16 +1260,8 @@ input:focus {
   position: relative;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.8);
 }
-/* Scanlines across the board so it reads as a phosphor console render, not a modern app. */
-.cp-board::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.33) 3px 4px);
-  mix-blend-mode: multiply;
-}
+/* Board scanlines come from the single global .scanlines glass (z 100) — no per-board layer,
+   so there is no out-of-phase moiré with the global lines. */
 .cp-sq {
   display: flex;
   align-items: center;
@@ -1378,13 +1373,11 @@ input:focus {
 }
 .mic-ico {
   flex: none;
-  width: calc(var(--btn-h) - 4px);
-  height: calc(var(--btn-h) - 4px);
+  width: calc(var(--btn-h) - 2px);
+  height: calc(var(--btn-h) - 2px);
   vertical-align: middle;
-  /* Blocky strokes + phosphor bleed so the mic reads as a chunky terminal glyph, not a clean
-     modern icon (adopts the shared --glow color). */
-  stroke-linecap: butt;
-  stroke-linejoin: miter;
+  /* A SOLID monochrome silhouette (fill: currentColor) so it reads like the chess-piece
+     glyphs, with the shared phosphor bleed. The global scanlines cut lines through it too. */
   filter: drop-shadow(0 0 3px rgba(var(--glow-rgb), 0.6));
 }
 #cp-mic.on .mic-ico {
@@ -1468,15 +1461,7 @@ input:focus {
   background-size: 44px 44px;
   opacity: 0.6;
 }
-.norad-scene::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.22) 3px 4px);
-  mix-blend-mode: multiply;
-}
+/* NORAD scanlines also come from the single global .scanlines glass (z 100). */
 
 .norad-frame {
   position: relative;

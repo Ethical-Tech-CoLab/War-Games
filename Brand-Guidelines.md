@@ -63,10 +63,22 @@ One source of truth for the phosphor bleed + scanlines, so every surface reads a
 | `--glow-rgb` | `51, 255, 102` | Phosphor green (`--fg`) as RGB, for `rgba(var(--glow-rgb), α)` glows. |
 | `--glow-soft` | `0 0 4px rgba(var(--glow-rgb), 0.4)` | Ambient text bleed (terminal body, chess panel). |
 | `--glow` | `0 0 8px rgba(var(--glow-rgb), 0.6)` | Emphasis bleed (system/status voice, input focus). |
-| `--scanline` | repeating 1px dark line every 4px | The CRT scanline overlay (`.scanlines`, chess panel). |
+| `--scanline` | repeating 1px dark line every 4px | The CRT scanline pattern used by the global glass. |
 
-Adopted by `.output`, `.line.system`, `.scanlines`, and the whole chess panel (status, input,
-mic, log) so the chess board is the same terminal, not a clean modern surface.
+**The defining lettering look is the scanline glass — not the font.** A single `.scanlines`
+overlay is drawn *over the entire experience* at the top of the stacking order (z-index 100,
+`pointer-events: none`, `mix-blend-mode: multiply`), so the dark `--scanline` lines cut through
+**every** letter on **every** surface — terminal, chess panel, NORAD, menus, console, pair. This
+is what makes the text read as a low-fidelity 1983 CRT. Combined with the phosphor bleed
+(`--glow-soft` / `--glow`), it is the whole "old-school green terminal" effect.
+
+> **Load-bearing rule:** there is exactly **one** scanline layer, and it must sit **above** all
+> panels/overlays. Never give a panel its own scanline (causes out-of-phase moiré) and never let
+> a panel render above the glass (it will look "too clean/modern" and break immersion — this was
+> the chess-panel and NORAD bug). Per-component scanlines were removed in favor of the single glass.
+
+Tokens adopted by `.output`, `.line.system`, `.scanlines`, and the whole chess panel (status,
+input, mic, log) so the chess board is the same terminal, not a clean modern surface.
 
 ### Typography
 
@@ -93,6 +105,9 @@ Size ladder (rem): `1.5` title · `1.3` entry title · `1.0` body/primary-btn ·
   overlays): transparent fill, `1px solid --fg-dim` border, invert-to-black on hover. Variants:
   `.icon-only` (borderless glyph, e.g. the chess piece), `.muted` (de-emphasized). `.primary-btn`
   now shares the outlined ghost treatment (unified this cycle — previously a solid fill).
+- **Icons.** Prefer monochrome glyphs that read like the chess-piece symbols (♞): a **solid
+  silhouette** filled with `currentColor` + the phosphor bleed, never a thin modern outline. The
+  chess voice mic is a filled SVG silhouette built to match the pieces.
 - **Panels.** `1px solid --fg-dim`, dark green translucent fill, soft green glow box-shadow. Used
   by the menu, Admin Console, wiki overlay, and pair sheet.
 - **Overlays.** Full-bleed scrim `rgba(1,6,1,0.92)`, centered panel. Shared by
