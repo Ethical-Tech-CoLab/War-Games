@@ -95,7 +95,7 @@ export const DIALOGUE = {
       { text: '  FALKEN\u2019S MAZE', cls: 'system' },
       { text: '  CHESS   CHECKERS   POKER   FIGHTER COMBAT', cls: 'system' },
       { text: '  THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE', cls: 'system' },
-      { text: '  {{GAME}}', cls: 'alert' },
+      { text: '  {{GAME}}', cls: 'system' },
       { text: '', cls: 'system' },
       { text: 'WHICH WOULD YOU LIKE TO PLAY?', cls: 'system' },
     ],
