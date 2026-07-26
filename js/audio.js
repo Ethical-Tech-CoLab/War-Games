@@ -14,6 +14,10 @@ export class AudioFx {
     this.ctx = null;
     this._voice = null;
     this._voicesReady = false;
+    this._ambience = null; // looping background bed (HTMLAudioElement), e.g. the NORAD room
+    this._ambienceWanted = false; // a scene currently wants the bed playing
+    this._ambienceSrc = null;
+    this._ambienceVol = 0.28;
     if (typeof speechSynthesis !== 'undefined') {
       const load = () => {
         const voices = speechSynthesis.getVoices();
@@ -47,7 +51,15 @@ export class AudioFx {
 
   setEnabled(on) {
     this.enabled = !!on;
-    if (!on) this.stopSpeech();
+    if (!on) {
+      this.stopSpeech();
+      // Pause (don't reset) the background bed so re-enabling resumes it in place.
+      if (this._ambience) {
+        try { this._ambience.pause(); } catch { /* ignore */ }
+      }
+    } else {
+      this._playAmbience(); // resume the bed if a scene still wants it
+    }
   }
 
   stopSpeech() {
@@ -58,6 +70,46 @@ export class AudioFx {
         /* ignore */
       }
     }
+  }
+
+  // ---------- Looping background ambience (e.g. the NORAD room tone) ----------
+  /** Start a looping, low-volume background bed for the current scene. Idempotent — safe to
+   * call on every open path. The bed only sounds while audio is enabled; toggling AUDIO OFF
+   * pauses it and AUDIO ON resumes it, as long as the owning scene is still present. */
+  startAmbience(src, volume = 0.28) {
+    this._ambienceWanted = true;
+    this._ambienceSrc = src;
+    this._ambienceVol = volume;
+    if (!this._ambience) {
+      const el = new Audio(src);
+      el.loop = true;
+      el.preload = 'auto';
+      this._ambience = el;
+    } else if (this._ambienceSrc && this._ambience.src.indexOf(src) === -1) {
+      this._ambience.src = src; // different track requested
+    }
+    this._ambience.volume = volume;
+    this._playAmbience();
+  }
+
+  /** Stop and rewind the background bed (scene closed). */
+  stopAmbience() {
+    this._ambienceWanted = false;
+    if (this._ambience) {
+      try {
+        this._ambience.pause();
+        this._ambience.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  _playAmbience() {
+    if (!this.enabled || !this._ambienceWanted || !this._ambience) return;
+    const p = this._ambience.play();
+    // Autoplay may be blocked until a user gesture; it will retry on the next enable/open.
+    if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
   }
 
   // ---------- Scene FX (NORAD big board: locks / alerts / launch) ----------

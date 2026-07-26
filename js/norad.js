@@ -183,6 +183,13 @@ export class NoradScene {
     }
   }
 
+  /** Start the low background room-tone bed that plays for as long as the board is present. */
+  _startAmbience() {
+    if (this.audio && typeof this.audio.startAmbience === 'function') {
+      this.audio.startAmbience('audio/norad-loop.mp3', 0.28);
+    }
+  }
+
   /** Build the readout cells from code + mask. Groups are separated by gap columns. */
   _buildReadout() {
     const r = this.el.readout;
@@ -227,6 +234,7 @@ export class NoradScene {
   open() {
     this.el.scene.hidden = false;
     this.root.classList.add('norad-open');
+    this._startAmbience();
     this._applyTheme();
     this.start();
   }
@@ -240,6 +248,7 @@ export class NoradScene {
   openScheduled(plan) {
     this.el.scene.hidden = false;
     this.root.classList.add('norad-open');
+    this._startAmbience();
     if (plan.code) this.code = String(plan.code).toUpperCase();
     if (plan.mask) this.mask = plan.mask;
     this._applyTheme();
@@ -255,6 +264,7 @@ export class NoradScene {
   openCoupled(opts = {}) {
     this.el.scene.hidden = false;
     this.root.classList.add('norad-open');
+    this._startAmbience();
     if (opts.code) this.code = String(opts.code).toUpperCase();
     if (opts.mask) this.mask = opts.mask;
     if (opts.names) this.names = opts.names;
@@ -352,6 +362,7 @@ export class NoradScene {
   /** Close the scene and stop all timers. Does NOT fire onComplete. */
   close() {
     this._stop();
+    if (this.audio && this.audio.stopAmbience) this.audio.stopAmbience();
     this.el.scene.hidden = true;
     this.root.classList.remove('norad-open');
   }
@@ -369,6 +380,7 @@ export class NoradScene {
   showNarration(text, { autoClose = true } = {}) {
     this.el.scene.hidden = false;
     this.root.classList.add('norad-open');
+    this._startAmbience();
     this._applyTheme();
     this.el.scene.classList.add('narrating');
     if (!this._narrating) {
@@ -395,6 +407,7 @@ export class NoradScene {
     this.el.scene.classList.remove('narrating');
     if (this.el.narration) this.el.narration.innerHTML = '';
     if (!this.running) {
+      if (this.audio && this.audio.stopAmbience) this.audio.stopAmbience();
       this.el.scene.hidden = true;
       this.root.classList.remove('norad-open');
     }
