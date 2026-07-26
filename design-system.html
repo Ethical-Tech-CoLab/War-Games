@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WarGames — Design System Inspector</title>
+  <!-- Reuse the game's stylesheet so every token, button, and border renders exactly as it
+       does in-game. This page is a standalone brand/UX workbench, opened in a new tab from the
+       Console. It never affects a running game (separate document). Adjust tokens live, preview
+       the impact, then copy the :root block into css/terminal.css + Brand-Guidelines.md. -->
+  <link rel="stylesheet" href="css/terminal.css" />
+  <style>
+    /* Local layout only — deliberately minimal so the game tokens do the talking. */
+    html, body {
+      overflow: auto;
+      height: auto;
+      background: #050403;
+      color: var(--fg);
+      font-family: var(--font);
+    }
+    body { display: block; padding: 0; }
+    .ds-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 22px 80px; }
+    .ds-h1 {
+      color: var(--fg-bright);
+      text-shadow: 0 0 12px rgba(51, 255, 102, 0.6);
+      letter-spacing: 4px;
+      font-size: 1.5rem;
+      margin: 0 0 4px;
+    }
+    .ds-lede { color: var(--fg-dim); line-height: 1.6; margin: 0 0 24px; max-width: 70ch; }
+    .ds-section {
+      border: 1px solid var(--fg-dim);
+      background: rgba(2, 12, 2, 0.6);
+      padding: 18px 20px;
+      margin: 0 0 22px;
+    }
+    .ds-section h2 {
+      color: var(--amber);
+      letter-spacing: 3px;
+      font-size: 0.9rem;
+      margin: 0 0 14px;
+      border-bottom: 1px dashed var(--fg-dim);
+      padding-bottom: 8px;
+    }
+    .ds-note { color: var(--fg-dim); font-size: 0.8rem; line-height: 1.5; margin: 6px 0 0; }
+    .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .ds-token {
+      border: 1px solid var(--fg-dim);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ds-token .ds-name { color: var(--fg-bright); letter-spacing: 1px; font-size: 0.82rem; }
+    .ds-token .ds-desc { color: var(--fg-dim); font-size: 0.72rem; line-height: 1.4; }
+    .ds-swatch { height: 34px; border: 1px solid var(--fg-dim); }
+    .ds-row { display: flex; align-items: center; gap: 8px; }
+    .ds-row input[type="color"] { width: 42px; height: 28px; padding: 0; background: none; border: 1px solid var(--fg-dim); cursor: pointer; }
+    .ds-row input[type="text"] {
+      flex: 1; background: #010601; color: var(--fg); border: 1px solid var(--fg-dim);
+      font-family: var(--font); font-size: 0.78rem; padding: 4px 6px;
+    }
+    .ds-samples { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .ds-line { line-height: 1.7; }
+    .ds-panel-demo {
+      border: 1px solid var(--fg-dim);
+      background: rgba(2, 12, 2, 0.9);
+      box-shadow: 0 0 30px rgba(51, 255, 102, 0.15);
+      padding: 16px 18px;
+      max-width: 360px;
+    }
+    .ds-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .ds-export {
+      width: 100%; min-height: 160px; background: #010601; color: var(--fg);
+      border: 1px solid var(--fg-dim); font-family: var(--font); font-size: 0.8rem; padding: 10px; margin-top: 10px;
+    }
+    .ds-flag { color: var(--warn); }
+    /* Utility classes so the demos avoid inline styles (this page is the brand exemplar). */
+    .ds-inline-btn { width: auto; }
+    .c-fg { color: var(--fg); }
+    .c-fg-dim { color: var(--fg-dim); }
+    .c-fg-bright { color: var(--fg-bright); }
+    .c-echo { color: var(--echo); }
+    .c-amber { color: var(--amber); }
+    .c-warn { color: var(--warn); }
+    .c-red { color: var(--red); }
+    .ds-panel-head {
+      color: var(--fg-bright); letter-spacing: 3px; border-bottom: 1px solid var(--fg-dim);
+      padding-bottom: 8px; margin-bottom: 8px;
+    }
+    .ds-panel-body { color: var(--fg-dim); font-size: 0.82rem; }
+    .ds-type-sample { line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="ds-wrap">
+    <h1 class="ds-h1">DESIGN SYSTEM INSPECTOR</h1>
+    <p class="ds-lede">
+      A live workbench for the WarGames brand. Every control below writes to a CSS custom
+      property on this page in real time so you can preview a change before committing it. When a
+      value looks right, press <strong>COPY :root</strong> and paste it into
+      <code>css/terminal.css</code> and <code>Brand-Guidelines.md</code> to keep them in sync.
+      This page is standalone — it does not touch a running game.
+    </p>
+
+    <section class="ds-section">
+      <h2>COLOR TOKENS</h2>
+      <div class="ds-grid" id="ds-colors"></div>
+      <p class="ds-note ds-flag">Consistency note: ~40 glows in the stylesheet hardcode the
+        phosphor green as <code>rgba(51,255,102,α)</code> instead of deriving from
+        <code>--fg</code>. See Brand-Guidelines.md → "Known inconsistencies" for the proposed
+        <code>--glow</code> token fix.</p>
+    </section>
+
+    <section class="ds-section">
+      <h2>TYPOGRAPHY</h2>
+      <div id="ds-type"></div>
+      <p class="ds-note">Single family: <code id="ds-font"></code>. The UI relies on
+        letter-spacing (1–4px) and case (UPPERCASE machine voice) rather than multiple fonts.</p>
+    </section>
+
+    <section class="ds-section">
+      <h2>CONTROL SIZING</h2>
+      <div class="ds-grid">
+        <div class="ds-token">
+          <span class="ds-name">--btn-h</span>
+          <span class="ds-desc">Shared button height (responsive: 26 / 28 / 34 / 44px).</span>
+          <div class="ds-row"><input type="text" id="ds-btn-h" title="--btn-h value" aria-label="--btn-h value" /></div>
+        </div>
+        <div class="ds-token">
+          <span class="ds-name">--btn-font</span>
+          <span class="ds-desc">Shared button font size.</span>
+          <div class="ds-row"><input type="text" id="ds-btn-font" title="--btn-font value" aria-label="--btn-font value" /></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <h2>BUTTONS</h2>
+      <div class="ds-samples">
+        <button class="ghost-btn">GHOST-BTN</button>
+        <button class="ghost-btn muted">GHOST-BTN .muted</button>
+        <button class="ghost-btn icon-only" aria-label="chess">&#9822;</button>
+        <button class="primary-btn ds-inline-btn">PRIMARY-BTN</button>
+        <button class="ghost-btn wiki-indicator">&#9432; BRIEFINGS</button>
+      </div>
+      <p class="ds-note">The outlined <code>.ghost-btn</code> is the canonical control across the
+        status bar, NORAD header, menu, and overlays. <code>.primary-btn</code> now shares the
+        same outlined treatment (unified this cycle).</p>
+    </section>
+
+    <section class="ds-section">
+      <h2>TEXT / VOICE CLASSES</h2>
+      <div class="ds-line">
+        <div class="c-fg">system — the machine's normal voice (--fg)</div>
+        <div class="c-fg-dim">dim — secondary / labels (--fg-dim)</div>
+        <div class="c-fg-bright">bright — emphasis / titles (--fg-bright)</div>
+        <div class="c-echo">echo — quiet asides / links (--echo)</div>
+        <div class="c-amber">amber — section labels (--amber)</div>
+        <div class="c-warn">warn — cautions (--warn)</div>
+        <div class="c-red">critical / alert — danger (--red)</div>
+      </div>
+    </section>
+
+    <section class="ds-section">
+      <h2>SURFACES</h2>
+      <div class="ds-samples">
+        <div class="ds-panel-demo">
+          <div class="ds-panel-head">PANEL</div>
+          <div class="ds-panel-body">Standard panel: <code>1px solid --fg-dim</code>, dark green fill, green glow box-shadow. Used by menu, Console, wiki, pair.</div>
+        </div>
+      </div>
+      <p class="ds-note ds-flag">Panel fill alpha varies slightly across components (0.9 / 0.94 /
+        0.95 / 0.975). Candidate for a single <code>--panel-bg</code> token.</p>
+    </section>
+
+    <section class="ds-section">
+      <h2>EXPORT</h2>
+      <div class="ds-actions">
+        <button class="ghost-btn" id="ds-copy">COPY :root</button>
+        <button class="ghost-btn" id="ds-reset">RESET</button>
+      </div>
+      <textarea class="ds-export" id="ds-export" spellcheck="false" title="Generated :root token block" aria-label="Generated :root token block" readonly></textarea>
+    </section>
+  </div>
+
+  <script>
+    // Token catalog — the single source of truth this page edits. Keep in sync with the
+    // :root block in css/terminal.css and the table in Brand-Guidelines.md.
+    const COLOR_TOKENS = [
+      { name: '--bg', desc: 'Base background (deep green-black).' },
+      { name: '--fg', desc: 'Primary phosphor green — the machine voice.' },
+      { name: '--fg-dim', desc: 'Dim green — borders, labels, secondary text.' },
+      { name: '--fg-bright', desc: 'Bright green — titles, emphasis, active glyphs.' },
+      { name: '--amber', desc: 'Amber — section labels, cautions in NORAD.' },
+      { name: '--warn', desc: 'Warm amber-orange — soft cautions.' },
+      { name: '--red', desc: 'Alarm red — critical / DEFCON danger.' },
+      { name: '--echo', desc: 'Cool phosphor — quiet asides, links, wiki markers.' },
+    ];
+
+    const rootStyle = document.documentElement.style;
+    const computed = getComputedStyle(document.documentElement);
+    const initial = {};
+
+    function readToken(name) {
+      return computed.getPropertyValue(name).trim() || getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+    // Normalize a CSS color to #rrggbb for the color input (best-effort via canvas).
+    const cctx = document.createElement('canvas').getContext('2d');
+    function toHex(c) {
+      try { cctx.fillStyle = '#000'; cctx.fillStyle = c; return cctx.fillStyle; } catch { return '#000000'; }
+    }
+
+    const colorsEl = document.getElementById('ds-colors');
+    COLOR_TOKENS.forEach((t) => {
+      const val = readToken(t.name);
+      initial[t.name] = val;
+      const hex = toHex(val);
+      const card = document.createElement('div');
+      card.className = 'ds-token';
+      card.innerHTML =
+        '<span class="ds-name">' + t.name + '</span>' +
+        '<span class="ds-desc">' + t.desc + '</span>' +
+        '<div class="ds-swatch" data-swatch></div>' +
+        '<div class="ds-row"><input type="color" value="' + hex + '"><input type="text" value="' + val + '"></div>';
+      const swatch = card.querySelector('[data-swatch]');
+      const picker = card.querySelector('input[type="color"]');
+      const text = card.querySelector('input[type="text"]');
+      swatch.style.background = 'var(' + t.name + ')';
+      const apply = (v) => { rootStyle.setProperty(t.name, v); text.value = v; try { picker.value = toHex(v); } catch {} updateExport(); };
+      picker.addEventListener('input', () => apply(picker.value));
+      text.addEventListener('change', () => apply(text.value.trim()));
+      colorsEl.appendChild(card);
+    });
+
+    // Sizing tokens
+    ['--btn-h', '--btn-font'].forEach((name) => {
+      const id = name.replace('--', 'ds-');
+      const input = document.getElementById(id);
+      const val = readToken(name);
+      initial[name] = val;
+      input.value = val;
+      input.addEventListener('change', () => { rootStyle.setProperty(name, input.value.trim()); updateExport(); });
+    });
+
+    // Typography samples
+    const fontVal = readToken('--font');
+    document.getElementById('ds-font').textContent = fontVal;
+    const sizes = [
+      ['1.5rem', 'Title (menu / overlay heads)'],
+      ['1.3rem', 'Entry title'],
+      ['1rem', 'Body / primary-btn'],
+      ['0.9rem', 'Inputs'],
+      ['0.82rem', 'Secondary'],
+      ['0.72rem', 'Labels / hints'],
+    ];
+    document.getElementById('ds-type').innerHTML = sizes
+      .map((s) => '<div style="font-size:' + s[0] + ';line-height:1.5">' + s[0] + ' — ' + s[1] + '</div>')
+      .join('');
+
+    function updateExport() {
+      const lines = [':root {'];
+      COLOR_TOKENS.forEach((t) => lines.push('  ' + t.name + ': ' + (rootStyle.getPropertyValue(t.name) || initial[t.name]).trim() + ';'));
+      ['--btn-h', '--btn-font'].forEach((n) => lines.push('  ' + n + ': ' + (rootStyle.getPropertyValue(n) || initial[n]).trim() + ';'));
+      lines.push('}');
+      document.getElementById('ds-export').value = lines.join('\n');
+    }
+    updateExport();
+
+    document.getElementById('ds-copy').addEventListener('click', () => {
+      const ta = document.getElementById('ds-export');
+      ta.select();
+      navigator.clipboard?.writeText(ta.value);
+    });
+    document.getElementById('ds-reset').addEventListener('click', () => {
+      Object.entries(initial).forEach(([k, v]) => rootStyle.setProperty(k, v));
+      location.reload();
+    });
+  </script>
+</body>
+</html>

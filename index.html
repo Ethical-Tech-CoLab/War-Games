@@ -24,6 +24,7 @@
         <div class="status-right">
           <span class="mode-badge" id="mode-badge"></span>
           <button class="ghost-btn" id="audio-btn" type="button" title="Toggle sound / voice">AUDIO ON</button>
+          <button class="ghost-btn wiki-indicator" id="wiki-btn" type="button" title="Field briefings — real-world context for the concepts in this game" hidden>&#9432; BRIEFINGS</button>
           <button class="ghost-btn" id="room-badge" type="button" title="This game's room code — click to pair screens" hidden>ROOM —</button>
           <button class="ghost-btn" id="view-btn" type="button" title="Viewer mode: Single / Split / Multi">VIEW: SINGLE</button>
           <button class="ghost-btn" id="norad-btn" type="button" title="NORAD big board">NORAD</button>
@@ -174,6 +175,23 @@
             <label class="ac-field col" id="ac-model-custom-field" hidden><span>Custom model id</span>
               <input type="text" id="ac-model" spellcheck="false" /></label>
             <p class="ac-note">Model / temperature / token changes apply to the NEXT AI request.</p>
+          </section>
+
+          <section class="ac-section">
+            <div class="ac-section-head"><span>EXPERIENCE</span></div>
+            <label class="ac-field"><span>Field briefings (in-game explainers)</span>
+              <input type="checkbox" id="ac-wiki" /></label>
+            <p class="ac-note">When on, a subtle <span aria-hidden="true">&#9432;</span> BRIEFINGS indicator appears and key
+              terms in the terminal become clickable for real-world context. Purely additive — never affects play.</p>
+            <label class="ac-field col"><span>NORAD ambience volume <em id="ac-norad-vol-val"></em></span>
+              <input type="range" id="ac-norad-vol" min="0" max="100" step="1" /></label>
+            <p class="ac-note">Background room-tone level for the NORAD scene only — adjust to suit your room’s noise.
+              Independent of the master audio toggle and all other sound.</p>
+            <div class="ac-telemetry-actions">
+              <button class="ghost-btn" id="ac-design-system" type="button" title="Open the design-system inspector in a new tab">DESIGN SYSTEM &#8599;</button>
+            </div>
+            <p class="ac-note">Opens a live catalog of every color, font, border, and button token — tweak and preview
+              brand adjustments (see Brand-Guidelines.md).</p>
           </section>
 
           <section class="ac-section">

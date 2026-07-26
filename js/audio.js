@@ -75,11 +75,13 @@ export class AudioFx {
   // ---------- Looping background ambience (e.g. the NORAD room tone) ----------
   /** Start a looping, low-volume background bed for the current scene. Idempotent — safe to
    * call on every open path. The bed only sounds while audio is enabled; toggling AUDIO OFF
-   * pauses it and AUDIO ON resumes it, as long as the owning scene is still present. */
+   * pauses it and AUDIO ON resumes it, as long as the owning scene is still present. The
+   * `volume` arg is only the DEFAULT for the first start; a Console override (setAmbienceVolume)
+   * persists across scene re-opens. */
   startAmbience(src, volume = 0.28) {
     this._ambienceWanted = true;
     this._ambienceSrc = src;
-    this._ambienceVol = volume;
+    if (!this._ambienceCustomVol) this._ambienceVol = volume; // respect a user-set level
     if (!this._ambience) {
       const el = new Audio(src);
       el.loop = true;
@@ -88,7 +90,7 @@ export class AudioFx {
     } else if (this._ambienceSrc && this._ambience.src.indexOf(src) === -1) {
       this._ambience.src = src; // different track requested
     }
-    this._ambience.volume = volume;
+    this._ambience.volume = this._ambienceVol;
     this._playAmbience();
   }
 
@@ -103,6 +105,19 @@ export class AudioFx {
         /* ignore */
       }
     }
+  }
+
+  /** Set the background bed's volume (0..1) INDEPENDENTLY of the master toggle and all other
+   * FX. Persisted/surfaced by the Console so it can be tuned to the room. */
+  setAmbienceVolume(v) {
+    const vol = Math.max(0, Math.min(1, Number(v)));
+    this._ambienceVol = vol;
+    this._ambienceCustomVol = true; // user override sticks across scene re-opens
+    if (this._ambience) this._ambience.volume = vol;
+  }
+
+  ambienceVolume() {
+    return this._ambienceVol;
   }
 
   _playAmbience() {

@@ -11,6 +11,7 @@ import { AudioFx } from './audio.js';
 import { ChessPanel } from './chess-ui.js';
 import { NoradScene } from './norad.js';
 import { SyncSession } from './sync.js';
+import { Wiki } from './wiki.js';
 
 const root = document.getElementById('crt');
 const els = {
@@ -39,6 +40,10 @@ const terminal = new Terminal(root);
 terminal.setAudio(audio);
 const chess = new ChessPanel(root, { audio });
 const norad = new NoradScene(root, { audio });
+// In-game "Field Briefings" wiki (js/wiki.js). Purely additive; toggled by a single Console
+// setting. Decorate terminal lines with clickable term markers only while it is enabled.
+const wiki = new Wiki(root, { indicator: document.getElementById('wiki-btn') });
+terminal.decorateLine = (el) => wiki.decorate(el);
 let chessStarted = false;
 let telemetryTimer = null;
 let engine = null; // the current GameEngine (leader/runtime session)
@@ -335,6 +340,10 @@ const ac = {
   maxtokens: document.getElementById('ac-maxtokens'),
   model: document.getElementById('ac-model'),
   telemetry: document.getElementById('ac-telemetry'),
+  wiki: document.getElementById('ac-wiki'),
+  noradVol: document.getElementById('ac-norad-vol'),
+  noradVolVal: document.getElementById('ac-norad-vol-val'),
+  designSystem: document.getElementById('ac-design-system'),
 };
 let acTurns = [];
 
@@ -353,6 +362,12 @@ function acSyncConfigInputs() {
     ac.model,
     SETTINGS.llm.model
   );
+  if (ac.wiki) ac.wiki.checked = !!SETTINGS.ui.wiki;
+  if (ac.noradVol) {
+    const pct = Math.round(audio.ambienceVolume() * 100);
+    ac.noradVol.value = String(pct);
+    if (ac.noradVolVal) ac.noradVolVal.textContent = `${pct}%`;
+  }
 }
 
 function acOpen() {
@@ -450,6 +465,38 @@ ac.model.addEventListener('change', () => {
   const v = ac.model.value.trim();
   if (v) SETTINGS.llm.model = v;
 });
+
+// --- Experience: in-game wiki toggle + NORAD ambience volume + design-system link ---
+const WIKI_PREF = 'wargames.wiki';
+const NORAD_VOL_PREF = 'wargames.noradVol';
+function setWikiEnabled(on) {
+  SETTINGS.ui.wiki = !!on;
+  wiki.setEnabled(SETTINGS.ui.wiki);
+  if (ac.wiki) ac.wiki.checked = SETTINGS.ui.wiki;
+  try { localStorage.setItem(WIKI_PREF, on ? '1' : '0'); } catch { /* ignore */ }
+}
+if (ac.wiki) ac.wiki.addEventListener('change', () => setWikiEnabled(ac.wiki.checked));
+if (ac.noradVol) {
+  ac.noradVol.addEventListener('input', () => {
+    const pct = Number(ac.noradVol.value);
+    audio.setAmbienceVolume(pct / 100);
+    if (ac.noradVolVal) ac.noradVolVal.textContent = `${pct}%`;
+    try { localStorage.setItem(NORAD_VOL_PREF, String(pct)); } catch { /* ignore */ }
+  });
+}
+if (ac.designSystem) {
+  ac.designSystem.addEventListener('click', () => {
+    window.open('design-system.html', '_blank', 'noopener');
+  });
+}
+// Restore saved preferences, then apply.
+try {
+  const w = localStorage.getItem(WIKI_PREF);
+  if (w !== null) SETTINGS.ui.wiki = w === '1';
+  const nv = localStorage.getItem(NORAD_VOL_PREF);
+  if (nv !== null) audio.setAmbienceVolume(Number(nv) / 100);
+} catch { /* ignore */ }
+setWikiEnabled(SETTINGS.ui.wiki);
 
 document.getElementById('chess-btn').addEventListener('click', () => {
   if (chess.el.panel.hidden) {

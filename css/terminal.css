@@ -357,7 +357,8 @@ body {
 
 /* ---------- Menu overlay ---------- */
 .menu-overlay,
-.telemetry-overlay {
+.telemetry-overlay,
+.wiki-overlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -559,16 +560,152 @@ body {
   .lk-light { animation: none; }
 }
 
-select,
-input[type="text"],
-input[type="password"] {
-  width: 100%;
-  background: #010601;
-  color: var(--fg);
+/* ---------- In-game wiki: Field Briefings ---------- */
+/* The status-bar indicator only appears when the feature is on (main.js sets [hidden]). */
+.wiki-indicator {
+  color: var(--echo);
+  border-color: var(--echo);
+}
+.wiki-indicator:hover {
+  background: var(--echo);
+  color: #000;
+}
+/* Inline term markers inside terminal lines — a faint dotted underline + a small ⓘ. Subtle
+   by design so they never pull focus from the story. Only rendered while wiki is on. */
+.wiki-term {
+  border-bottom: 1px dotted var(--echo);
+  cursor: help;
+  color: inherit;
+}
+.wiki-term::after {
+  content: " \9432"; /* ⓘ */
+  font-size: 0.8em;
+  color: var(--echo);
+  opacity: 0.8;
+}
+.wiki-term:hover {
+  background: rgba(127, 224, 192, 0.14);
+}
+
+.wiki-panel {
   border: 1px solid var(--fg-dim);
-  padding: 8px 10px;
+  background: rgba(2, 12, 2, 0.94);
+  box-shadow: 0 0 30px rgba(51, 255, 102, 0.15);
+  padding: 20px 24px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 88%;
+  display: flex;
+  flex-direction: column;
+}
+.wiki-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--fg-dim);
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+}
+.wiki-title {
+  color: var(--fg-bright);
+  text-shadow: 0 0 10px rgba(51, 255, 102, 0.6);
+  letter-spacing: 4px;
+  font-weight: bold;
+}
+.wiki-sub {
+  color: var(--fg-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.wiki-body {
+  overflow: auto;
+  padding-right: 6px;
+}
+.wiki-cat-head {
+  color: var(--echo);
+  letter-spacing: 3px;
+  font-size: 0.72rem;
+  margin: 14px 0 6px;
+  border-bottom: 1px dashed var(--fg-dim);
+  padding-bottom: 4px;
+}
+.wiki-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-left: 2px solid var(--fg-dim);
+  color: var(--fg);
   font-family: var(--font);
-  font-size: 0.9rem;
+  padding: 8px 10px;
+  margin: 4px 0;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.wiki-item:hover {
+  background: rgba(51, 255, 102, 0.08);
+  border-left-color: var(--fg);
+}
+.wiki-item-term {
+  display: block;
+  color: var(--fg-bright);
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+.wiki-item-hook {
+  display: block;
+  color: var(--fg-dim);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.wiki-back {
+  margin-bottom: 10px;
+}
+.wiki-entry-term {
+  color: var(--fg-bright);
+  text-shadow: 0 0 10px rgba(51, 255, 102, 0.5);
+  letter-spacing: 2px;
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+}
+.wiki-entry-hook {
+  color: var(--echo);
+  font-style: italic;
+  margin: 0 0 14px;
+}
+.wiki-field {
+  margin: 0 0 14px;
+}
+.wiki-field-label {
+  display: block;
+  color: var(--amber);
+  letter-spacing: 2px;
+  font-size: 0.68rem;
+  margin-bottom: 4px;
+}
+.wiki-field p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--fg);
+}
+.wiki-links {
+  margin: 0;
+  padding-left: 18px;
+}
+.wiki-links li {
+  margin: 4px 0;
+}
+.wiki-links a {
+  color: var(--echo);
+  text-decoration: underline;
+}
+.wiki-links a:hover {
+  color: var(--fg-bright);
+}
+
 }
 
 select:focus,
