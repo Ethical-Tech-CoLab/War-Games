@@ -315,18 +315,18 @@ export class ChessPanel {
     };
     rec.onend = () => {
       this.listening = false;
-      if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.innerHTML = `${MIC_SVG} SPEAK`; }
+      if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.innerHTML = MIC_SVG; }
     };
     this.recognition = rec;
     this.listening = true;
-    if (this.el.mic) { this.el.mic.classList.add('on'); this.el.mic.innerHTML = `${MIC_SVG} LISTENING`; }
+    if (this.el.mic) { this.el.mic.classList.add('on'); this.el.mic.innerHTML = MIC_SVG; }
     this._status('Listening\u2026 say a move, e.g. "e2 e4".');
     try { rec.start(); } catch { this._stopVoice(); }
   }
 
   _stopVoice() {
     this.listening = false;
-    if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.innerHTML = `${MIC_SVG} SPEAK`; }
+    if (this.el.mic) { this.el.mic.classList.remove('on'); this.el.mic.innerHTML = MIC_SVG; }
     if (this.recognition) {
       try { this.recognition.stop(); } catch { /* ignore */ }
       this.recognition = null;

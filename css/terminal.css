@@ -1198,7 +1198,11 @@ input:focus {
   background: rgba(1, 8, 1, 0.975);
   border-left: 1px solid var(--fg-dim);
   box-shadow: -10px 0 34px rgba(0, 0, 0, 0.55);
-  font-size: clamp(0.8rem, 1vw, 1.05rem);
+  /* The panel is its own size container: every child below sizes off the PANEL width (cqw),
+     not the viewport, so the board and text scale with the panel however it is docked. */
+  container-type: inline-size;
+  container-name: chesspanel;
+  font-size: 0.95rem; /* base; children scale with cqw off this container */
   padding-bottom: 10px;
   overflow-y: auto;
 }
@@ -1225,6 +1229,7 @@ input:focus {
   color: var(--amber);
   letter-spacing: 1px;
   min-height: 1.4em;
+  font-size: clamp(0.7rem, 3.4cqw, 1.05rem);
   text-transform: uppercase;
   text-shadow: 0 0 6px rgba(255, 204, 51, 0.4); /* match the terminal's amber phosphor glow */
 }
@@ -1233,9 +1238,9 @@ input:focus {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  /* Scale with BOTH the panel width and the viewport height so it stays a large, legible
-     square on phones and on very large/tall displays alike. */
-  width: min(92%, 72vh);
+  /* Scale with the PANEL width (container query units), never the viewport, so the board is
+     a large legible square proportional to whatever width the chess panel is docked at. */
+  width: min(92cqw, 96%);
   aspect-ratio: 1;
   margin: 6px auto;
   border: 1px solid var(--fg-dim);
@@ -1257,7 +1262,7 @@ input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.3rem, 6.2vmin, 4rem);
+  font-size: clamp(1rem, 9cqw, 4.5rem);
   line-height: 1;
   border: 1px solid rgba(31, 156, 64, 0.22);
   cursor: pointer;
@@ -1322,39 +1327,49 @@ input:focus {
   scrollbar-width: thin;
   scrollbar-color: var(--fg-dim) transparent;
 }
-.cp-log-entry { font-size: 0.72rem; color: var(--fg-dim); }
+.cp-log-entry { font-size: clamp(0.6rem, 2.6cqw, 0.85rem); color: var(--fg-dim); }
 .cp-log-entry.w { color: var(--fg); }
 .cp-say {
   width: 100%;
   font-style: italic;
   color: var(--echo);
-  font-size: 0.72rem;
+  font-size: clamp(0.6rem, 2.6cqw, 0.85rem);
   margin: 2px 0;
 }
 .cp-announce {
   width: 100%;
   color: var(--fg-dim);
-  font-size: 0.7rem;
+  font-size: clamp(0.58rem, 2.5cqw, 0.82rem);
   margin: 2px 0;
 }
 .cp-say.long {
   color: var(--amber);
   line-height: 1.4;
 }
-#cp-mic.on {
-  background: var(--warn);
-  color: #000;
-  border-color: var(--warn);
+/* Voice-input mic: no box — just the phosphor mic glyph, sized to the input-row height so it
+   sits large next to the text field and MOVE button. Listening state recolors + pulses the
+   glyph (there is no box to fill). */
+#cp-mic,
+#cp-mic:hover {
+  border: none;
+  background: transparent;
+  padding: 0 4px;
+  height: var(--btn-h);
+  color: var(--fg);
 }
-/* Terminal-green retro mic icon (inline SVG, currentColor) — replaces the color emoji so it
-   matches the phosphor aesthetic. Inherits the button's color, incl. the .on (recording)
-   state and hover. */
-#cp-mic {
-  gap: 6px;
+#cp-mic:hover {
+  color: var(--fg-bright);
+}
+#cp-mic.on {
+  background: transparent;
+  border: none;
+  color: var(--warn);
 }
 .mic-ico {
   flex: none;
-  vertical-align: -2px;
+  width: calc(var(--btn-h) - 4px);
+  height: calc(var(--btn-h) - 4px);
+  vertical-align: middle;
 }
 #cp-mic.on .mic-ico {
   animation: micpulse 1s ease-in-out infinite;
