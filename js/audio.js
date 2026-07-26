@@ -344,9 +344,6 @@ export function spellAcronyms(text) {
 const SPOKEN_FIXES = [
   [/\bpac[-\s]?man\b/gi, 'pack man'],
   [/\bdino\b/gi, 'dyno'],
-  // Standalone letter/word "a" -> long A ("ay", the letter-name /ei/), so the voice never
-  // mumbles it as a schwa (e.g. chess file "A 2" and the article "a" read as the clear vowel).
-  [/\ba\b/gi, 'ay'],
   [/\bwe['\u2019]re\b/gi, 'we are'],
   [/\byou['\u2019]re\b/gi, 'you are'],
   [/\bthey['\u2019]re\b/gi, 'they are'],
