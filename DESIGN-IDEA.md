@@ -326,7 +326,8 @@ release). This section is the living backlog — synced to
   See [LAUNCH-ROOM-SCENE-DESIGN.md](LAUNCH-ROOM-SCENE-DESIGN.md).
 - ✅ **Unified app style** — one phosphor-green treatment (border/text/buttons) across the
   opening menu, status bar, NORAD scene, and split view; shared `--btn-h`/`--btn-font`
-  buttons; retro `VT323` opener headings; responsive chess board (phones → Surface Hubs).
+  buttons; the opening screen now adopts the same mono font and outlined-box border treatment
+  as the BEDROOM terminal; responsive chess board (phones → Surface Hubs).
 
 ### Next phases (prioritized — most compelling first)
 
@@ -364,5 +365,18 @@ teenager-at-a-keyboard story and pivots on "the humans are the unreliable part" 
 introduction of `{{SYSTEM}}` / `{{PERSONA}}`. Recommended: ship **Option A ("WITNESS")** — a
 ≤90s paced cold open with a single countdown key-turn choice — as the default and **A/B
 baseline**, growable to the fuller **checklist** and **two-keys** variants, with an always-on
-**skip** and a seamless `clear → LOGON:` hand-off into gameplay.
+**skip** and a seamless `clear → LOGON:` hand-off into gameplay. The cold open now renders an
+on-screen **two-key launch board** (Commander + Deputy) whose keys turn to a red "LAUNCH
+ENABLED" bridge as the choice resolves.
+
+### Companion design study — engagement & game mechanics
+
+A forward-looking **game-design review** — where the current build under-engages the player and
+what concrete mechanics would deepen it — lives in [GAME-DESIGN.md](GAME-DESIGN.md). It audits the
+build through a game-design lens (flow, MDA, "interesting decisions", tension curves, diegetic UI,
+escape-room grammar), and recommends: making the **DEFCON ladder an input** (not just a readout),
+one **shared diegetic countdown** across the climax, **warmer/colder** feedback on every attempt,
+and a headline **locked-room "ABORT THE LAUNCH"** challenge on the NORAD board with three ramping
+locks (identity → back door → the boundary) whose solution _is_ the film's thesis. Target runs:
+**12–20 min**, six scenes each with a distinct verb.
 

@@ -114,6 +114,14 @@ export class Terminal {
     return div;
   }
 
+  /** Append an arbitrary element into the serial scroll flow (e.g. the launch-key panel).
+   * The engine owns the node; the terminal just places it and keeps the view scrolled. */
+  appendElement(el) {
+    this.output.appendChild(el);
+    this._scroll();
+    return el;
+  }
+
   /** Type a line character-by-character. Click to skip to the end of the line.
    * opts.ai=true marks the line as model-generated (adds a single-character gutter marker
    * so a builder can instantly tell AI output from scripted/authored output). */

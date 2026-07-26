@@ -332,10 +332,12 @@ body {
   color: #000;
 }
 
+/* CONNECT / COPY LINK share the terminal's outlined-box treatment (matches the bedroom
+   ghost-btn controls): transparent fill, 1px phosphor border, invert on hover. */
 .primary-btn {
-  background: var(--fg-dim);
-  color: #000;
-  border: none;
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
   padding: 12px 20px;
   font-family: var(--font);
   font-size: 1rem;
@@ -344,12 +346,13 @@ body {
   cursor: pointer;
   margin-top: 12px;
   width: 100%;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .primary-btn:hover {
-  background: var(--fg);
-  box-shadow: 0 0 16px rgba(51, 255, 102, 0.6);
+  background: var(--fg-dim);
+  color: #000;
+  box-shadow: 0 0 16px rgba(51, 255, 102, 0.4);
 }
 
 /* ---------- Menu overlay ---------- */
@@ -434,6 +437,126 @@ body {
   top: 12px;
   right: 16px;
   z-index: 45;
+}
+
+/* ---------- Launch-key board (WITNESS cold open) ---------- */
+/* Two key stations (Commander + Deputy) either side of a LAUNCH ENABLE bridge. Each key
+   sits ARMED in its lock and rotates 90° when turned. Pure phosphor-green, matching the
+   terminal — the only red is the alarm state, exactly like the DEFCON ladder. */
+.launch-keys {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 5vw, 48px);
+  margin: 18px auto;
+  padding: 16px 14px;
+  max-width: 520px;
+  border: 1px solid var(--fg-dim);
+  background: rgba(2, 14, 4, 0.5);
+  box-shadow: inset 0 0 24px rgba(51, 255, 102, 0.08);
+}
+.lk-station {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.lk-title {
+  font-size: 0.66rem;
+  letter-spacing: 2px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.lk-lock {
+  width: clamp(64px, 18vw, 100px);
+}
+.lk-key-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 4px rgba(51, 255, 102, 0.35));
+}
+.lk-face {
+  fill: rgba(51, 255, 102, 0.04);
+  stroke: var(--fg-dim);
+  stroke-width: 3;
+}
+.lk-slot {
+  stroke: var(--fg-dim);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.lk-key {
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+  transform: rotate(0deg);
+  transition: transform 0.9s cubic-bezier(0.5, 1.55, 0.4, 1);
+}
+.lk-key-head {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 5;
+}
+.lk-key-shaft,
+.lk-key-tooth {
+  fill: var(--fg);
+}
+.lk-station[data-state="turned"] .lk-key {
+  transform: rotate(90deg);
+}
+.lk-station[data-state="turned"] .lk-key-head {
+  stroke: var(--fg-bright);
+}
+.lk-station[data-state="turned"] .lk-key-shaft,
+.lk-station[data-state="turned"] .lk-key-tooth {
+  fill: var(--fg-bright);
+}
+.lk-light {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  animation: lkArmed 1.4s ease-in-out infinite;
+}
+.lk-station[data-state="turned"] .lk-light {
+  border-color: var(--fg);
+  color: var(--fg);
+  box-shadow: 0 0 10px rgba(51, 255, 102, 0.5);
+  animation: none;
+}
+.lk-station[data-state="refused"] .lk-light,
+.lk-station[data-state="noaction"] .lk-light {
+  border-color: var(--red);
+  color: var(--red);
+  animation: none;
+}
+@keyframes lkArmed {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.lk-bridge {
+  align-self: center;
+  min-width: 56px;
+  text-align: center;
+  border-top: 1px dashed var(--fg-dim);
+  padding-top: 6px;
+}
+.lk-bridge-label {
+  font-size: 0.54rem;
+  letter-spacing: 2px;
+  color: var(--fg-dim);
+}
+.launch-keys.enabled .lk-bridge {
+  border-top-color: var(--red);
+}
+.launch-keys.enabled .lk-bridge-label {
+  color: var(--red);
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lk-key { transition: none; }
+  .lk-light { animation: none; }
 }
 
 select,
@@ -1225,21 +1348,16 @@ input:focus {
   align-items: center;
   gap: 18px;
 }
-.norad-defcon {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  letter-spacing: 3px;
+/* NORAD DEFCON reuses the bedroom .defcon markup so the two boards read identically:
+   same green value, same 5-rung red ladder. Keep it phosphor-green even inside the
+   amber board so it matches the terminal exactly. */
+#norad-defcon {
+  align-items: center;
+  color: var(--fg);
 }
-.norad-defcon-label {
+#norad-defcon .defcon-label {
   font-size: 0.7rem;
   color: var(--fg-dim);
-}
-.norad-defcon-value {
-  font-size: clamp(1.2rem, 2.6vw, 2rem);
-  font-weight: bold;
-  color: var(--fg-bright);
-  text-shadow: 0 0 12px rgba(51, 255, 102, 0.5);
 }
 /* The shared ghost button already carries the app style; no cold override needed. */
 .norad-close {
@@ -1405,9 +1523,9 @@ input:focus {
   text-shadow: 0 0 14px rgba(255, 191, 60, 0.5);
   letter-spacing: 2px;
 }
-/* As the clock nears zero, the scene tips into red alarm. */
-.norad-scene.alarm .norad-clock-value,
-.norad-scene.alarm .norad-defcon-value {
+/* As the clock nears zero, the scene tips into red alarm. The DEFCON block is intentionally
+   excluded — it mirrors the bedroom, signalling threat via its red ladder + red number. */
+.norad-scene.alarm .norad-clock-value {
   color: var(--norad-red);
   text-shadow: 0 0 16px rgba(255, 77, 77, 0.6);
   animation: noradAlarm 0.9s ease-in-out infinite;
@@ -1446,8 +1564,7 @@ input:focus {
 @media (prefers-reduced-motion: reduce) {
   .norad-cell.rolling { animation: none; opacity: 0.85; }
   .norad-cell.flash { animation: none; }
-  .norad-scene.alarm .norad-clock-value,
-  .norad-scene.alarm .norad-defcon-value { animation: none; }
+  .norad-scene.alarm .norad-clock-value { animation: none; }
   .norad-scene::after { display: none; }
 }
 

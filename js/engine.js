@@ -7,6 +7,20 @@ import { DIALOGUE, START_NODE } from './dialogue.js';
 import { applyNames, SETTINGS } from './config.js';
 import { LLMClient, buildBerserkPrompt } from './llm.js';
 
+// A single launch key rendered in its lock face. The `.lk-key` group rotates 90° when the
+// station is turned (CSS). Reused for both the Commander and Deputy stations.
+const KEY_SVG = `
+<svg class="lk-key-svg" viewBox="0 0 100 150" aria-hidden="true">
+  <circle class="lk-face" cx="50" cy="50" r="34"/>
+  <line class="lk-slot" x1="50" y1="34" x2="50" y2="66"/>
+  <g class="lk-key">
+    <circle class="lk-key-head" cx="50" cy="50" r="14"/>
+    <rect class="lk-key-shaft" x="46" y="50" width="8" height="70" rx="1"/>
+    <rect class="lk-key-tooth" x="46" y="100" width="17" height="6"/>
+    <rect class="lk-key-tooth" x="46" y="112" width="12" height="6"/>
+  </g>
+</svg>`;
+
 export class GameEngine {
   constructor({ terminal, telemetry, names, mode, playIntro = false }) {
     this.term = terminal;
@@ -112,6 +126,8 @@ export class GameEngine {
     await beat('Nothing in this room can tell you whether the war is real, a drill, or a machine\u2019s bad dream.', 'narrator', 700);
     if (this._introAborted) return this._endIntro();
 
+    // Give the argument a physical anchor: the two-key launch board, both keys ARMED.
+    const keys = this._showKeyPanel();
     await beat('COMMANDER: "Keys in. Ready\u2026 MARK."', 'alert', 300);
 
     const { index, timedOut } = await this.term.chooseTimed(
@@ -125,6 +141,7 @@ export class GameEngine {
 
     const choice = timedOut ? 'timeout' : index === 0 ? 'turned' : 'refused';
     this.telemetry.event('witness_choice', { choice });
+    await this._resolveKeys(keys, choice);
 
     await beat('', 'system', 0);
     if (choice === 'turned') {
@@ -147,6 +164,58 @@ export class GameEngine {
     await beat(' Let {{SYSTEM}} decide. It will not flinch. It will not grieve. It will simply be right."', 'echo', 1000);
 
     this._endIntro();
+  }
+
+  /** Render the two-key launch board (Commander + Deputy), both keys ARMED, into the
+   * serial flow so the key-turn choice has something physical on screen. */
+  _showKeyPanel() {
+    const wrap = document.createElement('div');
+    wrap.className = 'launch-keys';
+    wrap.innerHTML = `
+      <div class="lk-station" data-role="commander" data-state="armed">
+        <span class="lk-title">COMMANDER</span>
+        <div class="lk-lock">${KEY_SVG}</div>
+        <span class="lk-light">ARMED</span>
+      </div>
+      <div class="lk-bridge"><span class="lk-bridge-label">LAUNCH ENABLE</span></div>
+      <div class="lk-station" data-role="deputy" data-state="armed">
+        <span class="lk-title">DEPUTY \u2014 YOU</span>
+        <div class="lk-lock">${KEY_SVG}</div>
+        <span class="lk-light">ARMED</span>
+      </div>`;
+    this.term.appendElement(wrap);
+    return wrap;
+  }
+
+  /** Animate the keys to match the player's choice: both turn (LAUNCH ENABLED), the deputy
+   * refuses while the commander turns, or the count runs out (no action from the deputy). */
+  async _resolveKeys(panel, choice) {
+    if (!panel) return;
+    const commander = panel.querySelector('[data-role="commander"]');
+    const deputy = panel.querySelector('[data-role="deputy"]');
+    const set = (station, state, label) => {
+      if (!station) return;
+      station.dataset.state = state;
+      const light = station.querySelector('.lk-light');
+      if (light) light.textContent = label;
+    };
+    if (choice === 'turned') {
+      set(commander, 'turned', 'TURNED');
+      await sleep(450);
+      set(deputy, 'turned', 'TURNED');
+      await sleep(500);
+      panel.classList.add('enabled');
+      const bridge = panel.querySelector('.lk-bridge-label');
+      if (bridge) bridge.textContent = 'LAUNCH ENABLED';
+    } else if (choice === 'refused') {
+      set(commander, 'turned', 'TURNED');
+      await sleep(450);
+      set(deputy, 'refused', 'REFUSED');
+    } else {
+      set(commander, 'turned', 'TURNED');
+      await sleep(450);
+      set(deputy, 'noaction', 'NO ACTION');
+    }
   }
 
   _setupIntroSkip() {

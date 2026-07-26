@@ -60,6 +60,7 @@ export class NoradScene {
       org: root.querySelector('#norad-org'),
       subtitle: root.querySelector('#norad-subtitle'),
       defconValue: root.querySelector('#norad-defcon-value'),
+      defconLadder: root.querySelector('#norad-defcon-ladder'),
       close: root.querySelector('#norad-close'),
       statusTop: root.querySelector('#norad-status-top'),
       readout: root.querySelector('#norad-readout'),
@@ -103,6 +104,19 @@ export class NoradScene {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (this.el.close) this.el.close.addEventListener('click', () => this.close());
+    this._buildDefconLadder();
+  }
+
+  /** Build the 5-rung DEFCON ladder (5..1, left to right) — identical to the bedroom. */
+  _buildDefconLadder() {
+    if (!this.el.defconLadder) return;
+    this.el.defconLadder.innerHTML = '';
+    for (let i = 5; i >= 1; i--) {
+      const rung = document.createElement('span');
+      rung.className = 'rung';
+      rung.dataset.level = String(i);
+      this.el.defconLadder.appendChild(rung);
+    }
   }
 
   _t(text) {
@@ -144,7 +158,18 @@ export class NoradScene {
     if (this.audio && value < this._prevDefconSound) this.audio.alert(); // escalation cue
     this._prevDefconSound = value;
     this.defcon = value;
-    if (this.el.defconValue) this.el.defconValue.textContent = String(value);
+    if (this.el.defconValue) {
+      this.el.defconValue.textContent = String(value);
+      // Recolor the number as it approaches war (matches the bedroom).
+      this.el.defconValue.style.color =
+        value <= 2 ? 'var(--red)' : value <= 3 ? 'var(--amber)' : 'var(--fg)';
+    }
+    if (this.el.defconLadder) {
+      // Light rungs from 5 down to the current level (more lit = more dangerous).
+      this.el.defconLadder.querySelectorAll('.rung').forEach((rung) => {
+        rung.classList.toggle('on', Number(rung.dataset.level) >= value);
+      });
+    }
   }
 
   /** Add the red alarm state, sounding the klaxon once when it first engages. */
