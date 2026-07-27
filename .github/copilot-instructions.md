@@ -25,8 +25,11 @@ The product is a **worn 1983 phosphor-green CRT terminal**. Breaking the look is
    **solid monochrome glyph** filled with `currentColor` + phosphor bleed, like the chess pieces —
    never a thin modern outline.
 6. **Green on black everywhere.** Form controls (`select`/`input`) are green-on-black; `html` sets
-   `color-scheme: dark` so native dropdown popups render dark, never white. **Red is scarce**
-   (genuine danger only: DEFCON ≤2, alarm, launch, parse-fail). Amber = labels/cautions.
+   `color-scheme: dark`. **Dropdowns must use the themed `.wg-select`** (js/select.js) — the native
+   `<select>` popup renders **white** and browsers won't reliably theme it, so it is replaced with an
+   on-brand green list (the native select stays as the value/event source). Never ship a raw
+   `<select>` popup. **Red is scarce** (genuine danger only: DEFCON ≤2, alarm, launch, parse-fail).
+   Amber = labels/cautions.
 7. **Respect `prefers-reduced-motion`** — every animation needs an off-switch.
 
 ## Required workflow for any UI change

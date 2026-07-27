@@ -108,6 +108,10 @@ Size ladder (rem): `1.5` title · `1.3` entry title · `1.0` body/primary-btn ·
 - **Icons.** Prefer monochrome glyphs that read like the chess-piece symbols (♞): a **solid
   silhouette** filled with `currentColor` + the phosphor bleed, never a thin modern outline. The
   chess voice mic is a filled SVG silhouette built to match the pieces.
+- **Dropdowns.** Always the themed **`.wg-select`** (js/select.js), never a raw `<select>` popup:
+  the native popup renders **white** and browsers won't reliably theme it. The custom list is
+  green-on-black (`--bg` fill, `--fg` text, `--fg-dim` selected/hover), the native `<select>` stays
+  hidden as the value/event source, and the global scanline glass passes over it like everything else.
 - **Panels.** `1px solid --fg-dim`, dark green translucent fill, soft green glow box-shadow. Used
   by the menu, Admin Console, wiki overlay, and pair sheet.
 - **Overlays.** Full-bleed scrim `rgba(1,6,1,0.92)`, centered panel. Shared by

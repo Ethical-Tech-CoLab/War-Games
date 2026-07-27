@@ -739,6 +739,75 @@ select optgroup {
   color: var(--fg);
 }
 
+/* ---------- Themed dropdown (.wg-select) ---------- */
+/* Replaces the native <select> popup (which browsers render WHITE and won't reliably theme)
+   with an on-brand green-on-black list. The native <select> is kept but hidden; js/select.js
+   drives it. This is the standard app dropdown — see .github/copilot-instructions.md. */
+.wg-select-native {
+  display: none;
+}
+.wg-select {
+  position: relative;
+  width: 100%;
+}
+.wg-select-btn {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--fg-dim);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.wg-select-btn:hover {
+  border-color: var(--fg);
+}
+.wg-select.open .wg-select-btn,
+.wg-select-btn:focus {
+  outline: none;
+  border-color: var(--fg);
+  box-shadow: var(--glow);
+}
+.wg-select-caret {
+  color: var(--fg-dim);
+  flex: none;
+}
+.wg-select-list {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bg); /* GREEN-on-black dropdown — never a white system popup */
+  border: 1px solid var(--fg);
+  box-shadow: var(--glow), 0 10px 24px rgba(0, 0, 0, 0.6);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.wg-select-opt {
+  padding: 8px 10px;
+  color: var(--fg);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.wg-select-opt:hover,
+.wg-select-opt:focus,
+.wg-select-opt[aria-selected="true"] {
+  background: var(--fg-dim);
+  color: #000;
+  outline: none;
+}
+
 select:focus,
 input:focus {
   outline: none;

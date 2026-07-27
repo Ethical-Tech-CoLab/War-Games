@@ -12,6 +12,7 @@ import { ChessPanel } from './chess-ui.js';
 import { NoradScene } from './norad.js';
 import { SyncSession } from './sync.js';
 import { Wiki } from './wiki.js';
+import { enhanceSelect } from './select.js';
 
 const root = document.getElementById('crt');
 const els = {
@@ -973,5 +974,12 @@ try {
 }
 loadProxyDiscovery();
 maybeBootstrapFollower();
+// Replace the native (white) <select> popups with the themed green .wg-select dropdown. Done
+// after the name sets are populated so their options exist. The native selects stay the source
+// of truth, so all existing value reads / 'change' listeners keep working.
+['nameset-select', 'mode-select', 'join-scene', 'cp-tone'].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) enhanceSelect(el);
+});
 // Reflect the film title token in the menu subtitle if desired later via applyNames.
 void applyNames;
