@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WarGames — Site Map / Scene Guide</title>
+  <!-- Reuse the game's stylesheet so tokens/treatment match exactly. Standalone reference page,
+       opened in a new tab from the Design System Inspector. Carries the CRT scanline glass so it
+       reads like the rest of the experience (see .github/copilot-instructions.md). -->
+  <link rel="stylesheet" href="css/terminal.css" />
+  <style>
+    html, body { overflow: auto; height: auto; background: #050403; color: var(--fg); font-family: var(--font); }
+    body { display: block; padding: 0; }
+    /* The defining CRT lettering treatment — the global scanline glass over the whole page. */
+    .sm-scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 9999; background: var(--scanline); }
+    .sm-wrap { max-width: 1000px; margin: 0 auto; padding: 28px 22px 80px; text-shadow: var(--glow-soft); }
+    .sm-h1 { color: var(--fg-bright); text-shadow: var(--glow); letter-spacing: 4px; font-size: 1.5rem; margin: 0 0 4px; }
+    .sm-lede { color: var(--fg-dim); line-height: 1.6; margin: 0 0 24px; max-width: 74ch; }
+    .sm-section { border: 1px solid var(--fg-dim); background: rgba(2, 12, 2, 0.6); padding: 16px 20px; margin: 0 0 22px; }
+    .sm-section h2 { color: var(--amber); letter-spacing: 3px; font-size: 0.9rem; margin: 0 0 12px; border-bottom: 1px dashed var(--fg-dim); padding-bottom: 8px; }
+    .sm-node { border-left: 2px solid var(--fg-dim); padding: 8px 12px; margin: 8px 0; }
+    .sm-node.entry { border-left-color: var(--fg-bright); }
+    .sm-node.tool { border-left-color: var(--echo); }
+    .sm-node.ref { border-left-color: var(--amber); }
+    .sm-name { color: var(--fg-bright); letter-spacing: 1px; font-weight: bold; }
+    .sm-id { color: var(--fg-dim); font-size: 0.75rem; }
+    .sm-desc { color: var(--fg); line-height: 1.55; margin: 4px 0 0; }
+    .sm-reach { color: var(--echo); font-size: 0.8rem; margin: 4px 0 0; }
+    .sm-links a { color: var(--echo); text-decoration: underline; }
+    .sm-links a:hover { color: var(--fg-bright); }
+    code { color: var(--fg-bright); }
+    .sm-flow { color: var(--fg-dim); line-height: 1.9; white-space: pre-wrap; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="sm-scanlines" aria-hidden="true"></div>
+  <div class="sm-wrap">
+    <h1 class="sm-h1">SITE MAP · SCENE / SCREEN GUIDE</h1>
+    <p class="sm-lede">Every scene, screen, overlay, and reference page in the experience, and how
+      they interlink. The game is a single-page app: <code>index.html</code> hosts all in-game
+      scenes; two standalone reference pages open in new tabs. Reached from
+      <span class="sm-links"><a href="design-system.html">Design System Inspector</a></span>
+      (itself reached from the in-game <strong>Console</strong>).</p>
+
+    <section class="sm-section">
+      <h2>ENTRY</h2>
+      <div class="sm-node entry">
+        <span class="sm-name">Opening Menu</span> <span class="sm-id">#menu-overlay · index.html</span>
+        <p class="sm-desc">Choose identity set + experience mode, toggle the launch-control intro,
+          and <strong>CONNECT</strong>. Also joins a second screen by ROOM code.</p>
+        <p class="sm-reach">Reached: app load. → CONNECT starts the game (optional WITNESS intro first).</p>
+      </div>
+    </section>
+
+    <section class="sm-section">
+      <h2>IN-GAME SCENES (index.html)</h2>
+      <div class="sm-node">
+        <span class="sm-name">WITNESS — Launch-Control Cold Open</span> <span class="sm-id">engine intro</span>
+        <p class="sm-desc">~90s two-key launch-capsule scene ending on a timed key-turn choice, then
+          hands off to the terminal. Skippable.</p>
+        <p class="sm-reach">Reached: CONNECT with the intro toggle on. → BEDROOM terminal.</p>
+      </div>
+      <div class="sm-node">
+        <span class="sm-name">BEDROOM Terminal</span> <span class="sm-id">#terminal + #statusbar</span>
+        <p class="sm-desc">The core scene: the scripted/live-AI conversation with the machine, the
+          DEFCON status bar, and the command input. The hub everything else launches from.</p>
+        <p class="sm-reach">Reached: after CONNECT / intro. → status-bar buttons open every tool below.</p>
+      </div>
+      <div class="sm-node">
+        <span class="sm-name">NORAD Big Board</span> <span class="sm-id">#norad-scene</span>
+        <p class="sm-desc">Full-screen launch-code brute-force with the 14-segment readout, DEFCON
+          ladder, and countdown. Couples to the live session or runs stand-alone / synced.</p>
+        <p class="sm-reach">Reached: status-bar <strong>NORAD</strong> button, or a second screen joining by ROOM.</p>
+      </div>
+      <div class="sm-node">
+        <span class="sm-name">Chess Panel</span> <span class="sm-id">#chess-panel</span>
+        <p class="sm-desc">Optional right-docked board vs. the built-in engine; click/type/voice moves,
+          tone-aware commentary. A diegetic aside that plants the futility theme.</p>
+        <p class="sm-reach">Reached: status-bar chess (♞) button.</p>
+      </div>
+      <div class="sm-node">
+        <span class="sm-name">Endings</span> <span class="sm-id">dialogue terminal</span>
+        <p class="sm-desc">Three outcomes — annihilation, lockout, understanding ("the only winning
+          move is not to play").</p>
+        <p class="sm-reach">Reached: by playing the conversation to a conclusion.</p>
+      </div>
+    </section>
+
+    <section class="sm-section">
+      <h2>OVERLAYS & TOOLS (index.html)</h2>
+      <div class="sm-node tool">
+        <span class="sm-name">Admin Console</span> <span class="sm-id">#admin-console</span>
+        <p class="sm-desc">AI inspector (exact prompt/response, turn log), config (marker, sound,
+          typewriter, temperature, model), <strong>Field briefings</strong> toggle, <strong>NORAD
+          ambience volume</strong>, and the <strong>DESIGN SYSTEM ↗</strong> link.</p>
+        <p class="sm-reach">Reached: status-bar <strong>CONSOLE</strong> button. → opens the Design System Inspector (new tab).</p>
+      </div>
+      <div class="sm-node tool">
+        <span class="sm-name">Field Briefings (Wiki)</span> <span class="sm-id">#wiki-overlay</span>
+        <p class="sm-desc">Optional in-game explainers (NORAD, DEFCON, MAD, …) with academic links.
+          When on, a subtle ⓘ indicator appears and terms in the terminal are clickable.</p>
+        <p class="sm-reach">Reached: status-bar <strong>ⓘ BRIEFINGS</strong> (shown only when enabled in Console).</p>
+      </div>
+      <div class="sm-node tool">
+        <span class="sm-name">Pair / Second Screen</span> <span class="sm-id">#pair-overlay</span>
+        <p class="sm-desc">Mint a ROOM code + follower link so a second device mirrors the NORAD
+          board (or a BEDROOM transcript), live-synced.</p>
+        <p class="sm-reach">Reached: status-bar <strong>PAIR</strong> / <strong>ROOM</strong> button.</p>
+      </div>
+      <div class="sm-node tool">
+        <span class="sm-name">Viewer Modes</span> <span class="sm-id">Single / Split / Multi</span>
+        <p class="sm-desc">Toggle how scenes are laid out (terminal only, terminal+NORAD split, or
+          multi-screen with the room code surfaced).</p>
+        <p class="sm-reach">Reached: status-bar <strong>VIEW</strong> button.</p>
+      </div>
+    </section>
+
+    <section class="sm-section">
+      <h2>REFERENCE PAGES (standalone, new tab)</h2>
+      <div class="sm-node ref sm-links">
+        <span class="sm-name"><a href="design-system.html">Design System Inspector</a></span> <span class="sm-id">design-system.html</span>
+        <p class="sm-desc">Live catalog of every token, component, and the CRT lettering treatment;
+          edit + preview + <code>COPY :root</code>.</p>
+        <p class="sm-reach">Reached: Admin Console → <strong>DESIGN SYSTEM ↗</strong>.</p>
+      </div>
+      <div class="sm-node ref sm-links">
+        <span class="sm-name">Site Map (this page)</span> <span class="sm-id">site-map.html</span>
+        <p class="sm-desc">The scene/screen guide you are reading.</p>
+        <p class="sm-reach">Reached: Design System Inspector → <strong>SITE MAP ↗</strong>.</p>
+      </div>
+    </section>
+
+    <section class="sm-section">
+      <h2>FLOW</h2>
+      <div class="sm-flow">Opening Menu ─ CONNECT ─▸ [WITNESS intro?] ─▸ BEDROOM Terminal (hub)
+    ├─ NORAD button ─▸ NORAD Big Board ◂─ second screen (ROOM)
+    ├─ chess ♞ ─▸ Chess Panel
+    ├─ ⓘ BRIEFINGS ─▸ Field Briefings (Wiki)
+    ├─ PAIR / ROOM ─▸ Pair / Second Screen
+    ├─ VIEW ─▸ Single / Split / Multi
+    └─ CONSOLE ─▸ Admin Console ─▸ Design System Inspector ↗ ─▸ Site Map ↗
+BEDROOM conversation ─▸ Ending (annihilation · lockout · understanding)</div>
+    </section>
+  </div>
+</body>
+</html>
