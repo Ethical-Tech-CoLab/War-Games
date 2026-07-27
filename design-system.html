@@ -12,14 +12,18 @@
   <style>
     /* Local layout only — deliberately minimal so the game tokens do the talking. */
     html, body {
-      overflow: auto;
-      height: auto;
+      height: 100%;
+      overflow: hidden;
+      margin: 0;
       background: #050403;
       color: var(--fg);
       font-family: var(--font);
     }
     body { display: block; padding: 0; }
-    .ds-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 22px 80px; }
+    /* Frame the page in the same worn 1983 CRT: content scrolls INSIDE the screen while the
+       beige .monitor bezel stays put. */
+    .crt.ds-page-crt { display: block; overflow-y: auto; }
+    .ds-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 22px 80px; text-shadow: var(--glow-soft); }
     .ds-h1 {
       color: var(--fg-bright);
       text-shadow: 0 0 12px rgba(51, 255, 102, 0.6);
@@ -75,14 +79,14 @@
       border: 1px solid var(--fg-dim); font-family: var(--font); font-size: 0.8rem; padding: 10px; margin-top: 10px;
     }
     .ds-flag { color: var(--warn); }
-    /* Mirror the game's defining lettering treatment: a CRT scanline glass drawn OVER the whole
-       page so every word here shows the same low-fi 'lines through the text' as in-game. (Plain
-       alpha compositing here — a top-level fixed layer can't safely use mix-blend-mode.) */
+    /* Mirror the game's defining lettering treatment: a CRT scanline glass over the SCREEN area
+       only (inset to the bezel), fixed while the content scrolls inside the CRT. */
     .ds-scanlines {
-      position: fixed;
-      inset: 0;
+      position: absolute;
+      inset: 3vh 3vw 5.5vh;
+      border-radius: 10px;
       pointer-events: none;
-      z-index: 9999;
+      z-index: 100;
       background: var(--scanline);
     }
     /* Utility classes so the demos avoid inline styles (this page is the brand exemplar). */
@@ -105,8 +109,9 @@
   </style>
 </head>
 <body>
-  <div class="ds-scanlines" aria-hidden="true"></div>
-  <div class="ds-wrap">
+  <div class="monitor">
+    <div class="crt ds-page-crt">
+      <div class="ds-wrap">
     <h1 class="ds-h1">DESIGN SYSTEM INSPECTOR</h1>
     <p class="ds-lede">
       A live workbench for the WarGames brand. Every control below writes to a CSS custom
@@ -209,6 +214,13 @@
       </div>
       <textarea class="ds-export" id="ds-export" spellcheck="false" title="Generated :root token block" aria-label="Generated :root token block" readonly></textarea>
     </section>
+      </div>
+    </div>
+    <div class="ds-scanlines" aria-hidden="true"></div>
+    <div class="monitor-chin" aria-hidden="true">
+      <span class="monitor-brand">WAR GAMES &nbsp;&bull;&nbsp; DESIGN SYSTEM</span>
+      <span class="monitor-led"></span>
+    </div>
   </div>
 
   <script>

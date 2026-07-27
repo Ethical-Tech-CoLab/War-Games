@@ -1424,7 +1424,7 @@ input:focus {
   scrollbar-width: thin;
   scrollbar-color: var(--fg-dim) transparent;
 }
-.cp-log-entry { font-size: clamp(0.6rem, 2.6cqw, 0.85rem); color: var(--fg-dim); }
+.cp-log-entry { font-size: clamp(0.6rem, 2.6cqw, 0.85rem); color: var(--fg-dim); text-transform: uppercase; }
 .cp-log-entry.w { color: var(--fg); }
 .cp-say {
   width: 100%;
