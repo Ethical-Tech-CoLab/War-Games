@@ -204,6 +204,21 @@ export const WIKI_ENTRIES = [
     ],
   },
   {
+    id: 'solved-games',
+    term: 'Solved Games & Forced Draws',
+    category: 'Strategy & Theory',
+    aliases: ['tic-tac-toe', 'cat\u2019s game', 'threefold repetition', 'solved game'],
+    hook: 'Some games are proven, in advance, to have no winner at all.',
+    what: 'A game is "solved" when the outcome of perfect play by both sides is known. Tic-tac-toe is strongly solved: with no mistakes by either player, it is always a draw. Its entire game tree is small enough to walk exhaustively — 255,168 possible games, of which 131,184 are won by X, 77,904 by O, and 46,080 drawn. Every one of those wins requires somebody to blunder.',
+    how: 'Solving a game means searching its tree of possible moves and backing the results up from the end positions — the minimax procedure. Chess is far too large to solve this way, so it approaches the same idea through rules: threefold repetition (the same position occurring three times) and the fifty-move rule end a game as a draw when neither side can make progress. Both are formal statements that repeating moves is not the same as winning.',
+    affairs: 'This is the intellectual spine of the story. A machine built only to win must eventually meet a class of problems where winning is not available — and the honest response is not a better strategy but a decision not to play. Applied to a nuclear exchange, where every branch ends in unacceptable loss for everyone, "the only winning move is not to play" stops being a slogan and becomes a result.',
+    links: [
+      { label: 'Solved game (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Solved_game' },
+      { label: 'Tic-tac-toe — combinatorics (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Tic-tac-toe' },
+      { label: 'Threefold repetition (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Threefold_repetition' },
+    ],
+  },
+  {
     id: 'gtw',
     term: 'Global Thermonuclear War',
     category: 'Consequences',

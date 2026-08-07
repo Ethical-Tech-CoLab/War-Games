@@ -113,6 +113,64 @@ export function buildBerserkPrompt(names, loginName = 'the Professor') {
   ].join('\n');
 }
 
+/**
+ * Resolve a reachable Live-AI target IN PLACE on the given config, using (in order) an
+ * already-set key, a ?proxy= override, the configured proxy URL, or the local dev proxy
+ * (serve.mjs on :8787). Returns false when no model is reachable, so callers can fall back.
+ * Shared by the story engine (berserk mode) and the chess minds/commentator.
+ */
+export function ensureLiveTarget(cfg) {
+  if (cfg.apiKey) return true;
+  const param =
+    typeof location !== 'undefined' ? new URLSearchParams(location.search).get('proxy') : null;
+  const configured = (param || cfg.proxyUrl || '').trim();
+  if (configured) {
+    cfg.endpoint = configured;
+    cfg.apiKey = 'proxy-managed';
+    return true;
+  }
+  if (typeof location !== 'undefined' && location.port === '8787') {
+    cfg.endpoint = '/v1/chat/completions';
+    cfg.model = cfg.model || 'openai/gpt-4o-mini';
+    cfg.apiKey = 'proxy-managed';
+    return true;
+  }
+  return false;
+}
+
+/**
+ * One-shot, stateless JSON completion — no conversation history, hard timeout, never throws
+ * for the caller to babysit beyond a rejected promise. Used by the chess minds and the chess
+ * commentator, which must NEVER block the board on a slow or missing model.
+ * @returns {Promise<object>} the parsed JSON object (best-effort via safeParse)
+ */
+export async function chatJSON(cfg, messages, opts = {}) {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), opts.timeoutMs || 9000) : null;
+  try {
+    const res = await fetch(cfg.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: opts.model || cfg.model,
+        temperature: opts.temperature ?? cfg.temperature ?? 0.6,
+        max_tokens: opts.maxTokens || 220,
+        messages,
+        response_format: { type: 'json_object' },
+      }),
+      signal: controller ? controller.signal : undefined,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return safeParse(data?.choices?.[0]?.message?.content ?? '');
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export class LLMClient {
   constructor(cfg, names, telemetry, systemPrompt) {
     this.cfg = cfg; // SETTINGS.llm

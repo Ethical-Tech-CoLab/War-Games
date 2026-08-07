@@ -5,7 +5,7 @@
 
 import { DIALOGUE, START_NODE } from './dialogue.js';
 import { applyNames, SETTINGS } from './config.js';
-import { LLMClient, buildBerserkPrompt } from './llm.js';
+import { LLMClient, buildBerserkPrompt, ensureLiveTarget } from './llm.js';
 
 // A single launch key rendered in its lock face. The `.lk-key` group rotates 90° when the
 // station is turned (CSS). Reused for both the Commander and Deputy stations.
@@ -273,6 +273,20 @@ export class GameEngine {
 
       this._applyEffect(node.effect);
 
+      // A node may hand the stage to a playable scene (the tic-tac-toe futility proof). The
+      // host wires `onFutilityDemo`; if nothing is wired the script simply continues.
+      if (node.demo === 'tictactoe' && this.onFutilityDemo) {
+        // eslint-disable-next-line no-await-in-loop
+        const summary = await this.onFutilityDemo();
+        if (summary) {
+          this.telemetry.event('futility_demo', {
+            games: summary.games,
+            examined: summary.enumeration ? summary.enumeration.total : null,
+            perfectResult: summary.perfect,
+          });
+        }
+      }
+
       if (node.type === 'ending') {
         this._ending = node.effect?.ending || 'unknown';
         this.emitState({ status: 'complete', progress: 1 });
@@ -487,22 +501,7 @@ export class GameEngine {
   /** Ensure Live-AI is reachable for berserk mode: use an already-set key, a configured
    * proxy URL (?proxy= or SETTINGS.llm.proxyUrl), or the local dev proxy. Else false. */
   _ensureLLMConfigured() {
-    if (SETTINGS.llm.apiKey) return true;
-    const param =
-      typeof location !== 'undefined' ? new URLSearchParams(location.search).get('proxy') : null;
-    const configured = (param || SETTINGS.llm.proxyUrl || '').trim();
-    if (configured) {
-      SETTINGS.llm.endpoint = configured;
-      SETTINGS.llm.apiKey = 'proxy-managed';
-      return true;
-    }
-    if (typeof location !== 'undefined' && location.port === '8787') {
-      SETTINGS.llm.endpoint = '/v1/chat/completions';
-      SETTINGS.llm.model = SETTINGS.llm.model || 'openai/gpt-4o-mini';
-      SETTINGS.llm.apiKey = 'proxy-managed';
-      return true;
-    }
-    return false;
+    return ensureLiveTarget(SETTINGS.llm);
   }
 
   async _glitch() {
@@ -704,6 +703,19 @@ export class GameEngine {
         ? DIALOGUE.ending_lockout
         : DIALOGUE.ending_annihilation;
     this.term.hideInput();
+    // The "understanding" ending is EARNED by a proof, not asserted: before the machine says
+    // the line, it plays tic-tac-toe against itself, enumerates every possible game, and
+    // applies the result to {{GAME}}. Same beat in Live-AI mode as in the script.
+    if (ending === 'understanding' && this.onFutilityDemo) {
+      const summary = await this.onFutilityDemo();
+      if (summary) {
+        this.telemetry.event('futility_demo', {
+          games: summary.games,
+          examined: summary.enumeration ? summary.enumeration.total : null,
+          perfectResult: summary.perfect,
+        });
+      }
+    }
     this.term.clear();
     for (const line of node.lines) {
       // eslint-disable-next-line no-await-in-loop

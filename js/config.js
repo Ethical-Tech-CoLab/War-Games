@@ -87,6 +87,20 @@ export const SETTINGS = {
   // Which experience to run: 'scripted' (deterministic) or 'llm' (dynamic)
   mode: 'scripted',
 
+  // Chess mini-game. The RULE BOOK is fixed (js/chess.js) and can never be broken; only the
+  // MIND that chooses among legal moves is swappable (js/chess-engines.js) — including
+  // mid-game, which is the "chaos" rule below.
+  chess: {
+    mind: 'classic', // the machine's mind when you play it (id from js/chess-engines.js)
+    whiteMind: 'strategist', // machine-vs-machine duel: White's mind
+    blackMind: 'berserk', // machine-vs-machine duel: Black's mind
+    mindDrift: true, // chaos: swap the machine's mind mid-game while the human is winning
+    driftThreshold: 2, // pawns of player advantage that arms a drift
+    driftCooldown: 8, // plies to wait between drifts
+    liveCommentary: false, // ask the configured model for bespoke cantankerous commentary
+    duelDelayMs: 900, // pacing between moves in a duel, so it reads like a broadcast
+  },
+
   // LLM integration. GitHub Pages is static-only, so there is no server: the model is
   // called directly from the browser using a key the player supplies. That key lives
   // only in the player's browser (localStorage) and is never committed or proxied.

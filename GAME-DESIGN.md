@@ -243,6 +243,62 @@ animation, DEFCON ladder, key-turn visual), so it is high-impact for moderate co
   epilogue text, so a second run _reads_ differently.
 - **Identity sets** already re-skin the whole game — lean into this as a "New Game+" flavour toggle.
 
+### 4.8 The futility proof — tic-tac-toe as a *played* scene (built)
+
+The climax's thesis ("some games cannot be won") was previously **asserted** by four lines of
+narration. It is now **proved on screen**, because a lesson the player watches a machine derive is
+worth ten times a lesson the machine states.
+
+**What runs** ([js/tictactoe-ui.js](js/tictactoe-ui.js) → `runFutilityDemo()`), reached from the
+scripted `teach_futility` node *and* from the Live-AI `understanding` ending:
+
+1. **It plays itself, visibly.** Three games at readable speed on a real board. `WINNER: NONE`.
+2. **It accelerates.** Six more games too fast to follow. The tally climbs; the draw column is the
+   only one moving.
+3. **It proves it.** The machine walks the **entire game tree — all 255,168 games — in ~300 ms**
+   and reads back the real counts (X wins 131,184 · O wins 77,904 · draws 46,080), then the
+   punchline: *with no mistakes by either side, the result is always a draw.* Every number is
+   computed at runtime by [js/tictactoe.js](js/tictactoe.js), not authored — you can change the
+   code and the numbers change.
+4. **It generalises.** The same question is put to {{GAME}}: ten doctrines, from a local theatre
+   engagement to a total strategic exchange, each returning `WINNER: NONE`.
+5. **It concludes.** *A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO PLAY.*
+
+**Why this is the right shape.** It converts the film's most famous beat from a cutscene into the
+game's proof step (§3.2 "cleverness reward", §3.5 diegetic interface). The machine's authority
+comes from arithmetic the player can watch. And because the same panel is playable standalone from
+the status bar — where it plays **perfectly and can never be beaten** — a player who tried to win
+earlier has already *felt* the conclusion before the machine states it. Plant, then payoff (§4.4-5).
+
+**The chess echo.** The chess panel now enforces **threefold repetition** (see
+[CHESS-DESIGN.md](CHESS-DESIGN.md) → *Draws*). A player who repeats a position three times ends
+the game with no winner — the same lesson, reached by a different route, on a different board,
+before the climax. Two independent proofs of one idea is a theme; one is a line of dialogue.
+
+### 4.9 Additional gameplay sequences to add (ranked, and why chess alone is thin)
+
+Chess is a **20-minute commitment inside a 15-minute thriller**, and it asks for a skill the
+audience may not have. It is a great *texture* and a great *thematic plant*, but it cannot be the
+main optional activity — a high-school-nerd player wants to feel **clever and fast**, not
+out-calculated. The sequences below all pay off in under three minutes, use surfaces that already
+exist, and each teaches something the climax later uses.
+
+| # | Sequence | Verb | Why it pulls | Cost |
+|---|---|---|---|---|
+| **1** | **WAR DIALER** — scan a block of phone numbers on the acoustic coupler; most ring out, one answers with a bare `LOGON:`. | HUNT | The single most iconic *nerd-competence* fantasy of 1983, and it is a slot machine with a story payout. Discovering the back door yourself beats being handed it. | Low |
+| **2** | **THE BACK DOOR** — assemble the creator's password from artefacts (a magazine clipping, a dedication, a son's name) found by probing. | DEDUCE | Turns exposition into a puzzle; the payoff *is* the Act-5 Lock 2 (§4.5). Rewards curiosity with access. | Low–Med |
+| **3** | **PRINTOUT FORENSICS** — a fan-fold printout with redactions; drag a marker over lines to reveal what the machine already decided. | READ CLOSELY | Cheap, atmospheric, and it plants the machine's goal in its own words. Great screenshot. | Low |
+| **4** | **THE PHONE CALL** — a two-minute conversation with a rushed adult (Falken/Vance analogue) where *the question you choose* determines which clue you get. | ASK | Human stakes, and a diegetic hint system (§4.6). Interrupting/being polite changes the answer. | Med |
+| **5** | **TRACE RACE** — while you talk, a trace bar fills; hang up too late and the FBI beat fires. STALL buys clues but fills the bar. | RISK | Converts the DEFCON-as-input idea (§4.4-1) into a visible economy in a small, testable scene. | Med |
+| **6** | **THE SPEED ROUND** — the machine offers its game list and challenges you at something *you* can win: 20 seconds of mental arithmetic, code-word matching, or 8-bit pattern recall. | PERFORM | Lets the nerd persona be *good at the thing* immediately. A 30-second win between two tense scenes is the pacing release §4.4-6 asks for. | Low |
+| **7** | **TEACH IT A GAME** — you type the rules of a game *you* pick from a short list; it plays it perfectly in seconds and reports `WINNER: NONE` or beats you instantly. | TEACH | The player performs the futility experiment themselves before the climax does it at scale. Reuses the tic-tac-toe engine wholesale. | Low |
+| **8** | **MIND DRIFT (chess, built)** — the machine swaps the brain it thinks with, mid-game, because you are winning. | ENDURE | Makes chess *dramatic* rather than long: the interesting thing is no longer the position, it is that your opponent changed. | Built |
+
+**How they thread onto the spine.** 1 → 3 sit in Act 1 (WITNESS/FIRST CONTACT) as the way *in*.
+2 and 4 sit across Acts 2–3 and load the Act-5 locks. 5 rides on top of Act 4. 6 is the breather
+between escalations. 7 and 8 are the optional asides that make the climax land. Chess moves from
+"the optional activity" to "one of four optional activities", which is exactly where it belongs.
+
 ---
 
 ## 5. Prioritized recommendations
@@ -257,6 +313,10 @@ animation, DEFCON ladder, key-turn visual), so it is high-impact for moderate co
 | **P2** | Diegetic hint (colleague-on-the-line) + difficulty/clock setting | Accessibility without breaking fiction (§4.6) | Low |
 | **P3** | Ending-aware end-card ("2 of 3 seen") + path-sensitive epilogue | Cheap, strong replay pull (§4.7) | Low |
 | **P3** | Chess re-framed as an optional Act-2 aside that plants futility | Removes the detour feel; strengthens theme | Low |
+| **Done** | **Tic-tac-toe futility proof played on screen** (§4.8) | Turns the thesis from narration into a demonstration the player watches | Built |
+| **Done** | **Threefold repetition in chess** (§4.8, [CHESS-DESIGN.md](CHESS-DESIGN.md)) | A second, independent proof that some games have no winner — and it stops AI-vs-AI duels looping forever | Built |
+| **P2** | **WAR DIALER** + **THE BACK DOOR** (§4.9-1/2) | The strongest nerd-competence fantasy available, and it loads the Act-5 locks | Low–Med |
+| **P3** | **THE SPEED ROUND** + **TEACH IT A GAME** (§4.9-6/7) | Short wins that pace the thriller and rehearse the climax | Low |
 
 ---
 

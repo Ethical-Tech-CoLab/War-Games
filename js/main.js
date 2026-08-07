@@ -9,6 +9,7 @@ import { Telemetry } from './telemetry.js';
 import { GameEngine } from './engine.js';
 import { AudioFx } from './audio.js';
 import { ChessPanel } from './chess-ui.js';
+import { TicTacToePanel } from './tictactoe-ui.js';
 import { NoradScene } from './norad.js';
 import { SyncSession } from './sync.js';
 import { Wiki } from './wiki.js';
@@ -40,12 +41,14 @@ const audio = new AudioFx();
 const terminal = new Terminal(root);
 terminal.setAudio(audio);
 const chess = new ChessPanel(root, { audio });
+const ttt = new TicTacToePanel(root, { audio });
 const norad = new NoradScene(root, { audio });
 // In-game "Field Briefings" wiki (js/wiki.js). Purely additive; toggled by a single Console
 // setting. Decorate terminal lines with clickable term markers only while it is enabled.
 const wiki = new Wiki(root, { indicator: document.getElementById('wiki-btn') });
 terminal.decorateLine = (el) => wiki.decorate(el);
 let chessStarted = false;
+let tttStarted = false;
 let telemetryTimer = null;
 let engine = null; // the current GameEngine (leader/runtime session)
 let liveSession = null; // the always-on broadcast session (medium); every game gets a room
@@ -255,6 +258,7 @@ async function startGame({ names, nameSetKey, mode, playIntro = false }) {
   acResetPanel();
   root.classList.toggle('hide-ai-marker', SETTINGS.ui.aiMarker === false);
   chess.setPersona(names.PERSONA);
+  ttt.names = names; // {{GAME}} / {{PERSONA}} for the futility demonstration
   activeNameSetKey = nameSetKey;
   // Give the NORAD big board the active vocabulary + starting DEFCON so it reads as the
   // same world as the terminal when the player peeks behind the curtain.
@@ -283,6 +287,16 @@ async function startGame({ names, nameSetKey, mode, playIntro = false }) {
   };
   // NORAD-POV script lines are shown on the NORAD scene, not David's terminal (#2).
   engine.onNoradLine = (text) => norad.showNarration(text, { autoClose: viewMode === 'single' });
+  // The futility climax is PLAYED, not narrated: the machine opens the tic-tac-toe board,
+  // beats itself repeatedly, enumerates every possible game, and applies the result to
+  // {{GAME}}. Both scripted and Live-AI modes await this before the "understanding" ending.
+  engine.onFutilityDemo = async () => {
+    chess.close(); // the mini-game panels share one dock
+    const summary = await ttt.runFutilityDemo();
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    ttt.close();
+    return summary;
+  };
   // Mirror every printed terminal line so a BEDROOM follower can watch this session live.
   terminal.onLine = (text, cls) => broadcastLine(text, cls);
 
@@ -501,6 +515,7 @@ setWikiEnabled(SETTINGS.ui.wiki);
 
 document.getElementById('chess-btn').addEventListener('click', () => {
   if (chess.el.panel.hidden) {
+    ttt.close(); // the two mini-game panels share the same dock
     if (!chessStarted) {
       chess.newGame('w');
       chessStarted = true;
@@ -508,6 +523,19 @@ document.getElementById('chess-btn').addEventListener('click', () => {
     chess.open();
   } else {
     chess.close();
+  }
+});
+
+document.getElementById('ttt-btn').addEventListener('click', () => {
+  if (ttt.el.panel.hidden) {
+    chess.close(); // the two mini-game panels share the same dock
+    if (!tttStarted) {
+      ttt.newGame('X');
+      tttStarted = true;
+    }
+    ttt.open();
+  } else {
+    ttt.close();
   }
 });
 
@@ -950,6 +978,7 @@ els.restartBtn.addEventListener('click', () => {
   acClose();
   acResetPanel();
   chess.close();
+  ttt.close();
   norad.close();
   // Tear down the broadcast so the next game gets a fresh room.
   if (liveSession) liveSession.stop();
@@ -977,7 +1006,7 @@ maybeBootstrapFollower();
 // Replace the native (white) <select> popups with the themed green .wg-select dropdown. Done
 // after the name sets are populated so their options exist. The native selects stay the source
 // of truth, so all existing value reads / 'change' listeners keep working.
-['nameset-select', 'mode-select', 'join-scene', 'cp-tone'].forEach((id) => {
+['nameset-select', 'mode-select', 'join-scene', 'cp-tone', 'cp-mind', 'cp-mind-alt'].forEach((id) => {
   const el = document.getElementById(id);
   if (el) enhanceSelect(el);
 });

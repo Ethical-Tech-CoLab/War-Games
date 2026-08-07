@@ -113,8 +113,12 @@ export function enhanceSelect(select) {
     }
   });
 
-  // Keep the custom label in sync if code changes the value programmatically.
+  // Keep the custom label in sync if code changes the value programmatically. Native <select>
+  // does NOT fire 'change' for programmatic value writes, so callers that set `.value` in code
+  // dispatch a 'wg-select-sync' event instead (dispatching 'change' would re-enter their own
+  // change handlers).
   select.addEventListener('change', syncLabel);
+  select.addEventListener('wg-select-sync', syncLabel);
   syncLabel();
 }
 

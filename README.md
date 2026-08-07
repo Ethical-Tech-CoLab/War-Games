@@ -34,9 +34,19 @@ opponent that talks back.
 - **Admin Console** — click **CONSOLE** in the status bar to see the exact last prompt and
   raw AI response, adjust live config (model, temperature, sound, speed, AI marker), review
   the per-turn log, and read/export session telemetry.
-- **Chess** — click the ♟ button to open the chess panel. Move by clicking squares, typing
-  (`e2e4` or `e4`), or **voice** (🎤 SPEAK). The opponent comments and announces moves aloud;
-  tone is configurable under **Chess Config** in the Admin Console.
+- **Chess** — click the ♞ button to open the chess panel. Move by clicking squares, typing
+  (`e2e4`), or **voice** (🎤 SPEAK). Pick the **MIND** the machine thinks with — from a random
+  fault, through positional and attacking searches, to a **live language model** — and swap it
+  whenever you like, including mid-game. Play well and **MIND DRIFT** swaps it *for* you, so the
+  better you do the stranger your opponent gets. **AI vs AI** sets two minds against each other
+  with running cantankerous commentary, and a tray under the moves shows every piece taken out of
+  play. Repeat a position three times and the game is a draw — the board making the same point the
+  film does. Tone, drift, and live commentary are configurable under **Chess Config** in the
+  Admin Console.
+- **Tic-tac-toe** — click the grid button. The machine plays **perfectly**, so the best you can
+  ever do is a draw. Press **LEARN** and it will play itself, accelerate, enumerate **all 255,168
+  possible games** in front of you, and reach the conclusion the whole story is about. The same
+  scene runs automatically when you teach the machine futility.
 - **Berserk easter egg** — a hidden authorization flips the persona into an emergent,
   unbounded mode. (Left as a discovery.)
 
@@ -86,6 +96,28 @@ does the work the browser can't:
 
 Because the proxy is already deployed, **you don't need to set anything up to play** — just
 open the [live link](https://ethical-tech-colab.github.io/War-Games/) and choose **Live AI**.
+
+### Where AI is — and isn't — used
+
+Every model call in the app goes through the same client ([js/llm.js](js/llm.js)) and the same
+proxy resolution (`?proxy=` → `ai-proxy.json` / `SETTINGS.llm.proxyUrl` → local dev proxy on
+:8787 → your own key). Everything else is deterministic code.
+
+| Surface | Model used? | What happens if the model is unreachable |
+|---|---|---|
+| **Scripted story mode** ([js/dialogue.js](js/dialogue.js)) | No — hand-authored graph | n/a |
+| **Live-AI story mode** ([js/engine.js](js/engine.js)) | Yes — persona + strict JSON contract (`reply`/`defconDelta`/`ending`) | Falls back to Scripted mid-conversation |
+| **Berserk easter egg** | Yes — the unbound "mad professor" prompt | Easter egg declines; normal mode continues |
+| **Chess rules & legality** ([js/chess.js](js/chess.js)) | **Never** — perft-validated rule book | n/a |
+| **Chess opponent** ([js/chess-engines.js](js/chess-engines.js)) | Optional — the `llm` mind picks from an explicit legal-move list | Local alpha-beta search substitutes; the panel says so |
+| **Chess commentary** ([js/chess-commentary.js](js/chess-commentary.js)) | Optional — bespoke cantankerous lines | Canned line bank |
+| **Tic-tac-toe + the futility proof** ([js/tictactoe.js](js/tictactoe.js)) | **Never** — perfect minimax and a full 255,168-game enumeration | n/a |
+| **NORAD board, sync, telemetry, wiki** | No | n/a |
+
+The pattern is deliberate and is the teaching point: **the model never owns state or rules.** It
+proposes; deterministic code validates and decides. That is why a language model can be seated at
+the chess board at all — an invented move simply fails `parseMove()` and the local search plays
+instead.
 
 ---
 
@@ -275,8 +307,12 @@ js/llm.js             OpenAI-compatible browser client + persona/berserk prompts
 js/engine.js          DEFCON state machine; runs scripted, live-AI, or berserk mode
 js/terminal.js        Terminal view: typewriter, choices, prompts, DEFCON ladder
 js/audio.js           Sound FX + text-to-speech (spoken-text pipeline)
-js/chess.js           Chess rules + alpha-beta AI (perft-validated)
-js/chess-ui.js        Chess panel: click/type/voice input, commentary, announcements
+js/chess.js           Chess rules + generic alpha-beta search (perft-validated)
+js/chess-engines.js   Swappable "minds" over those rules (incl. an LLM mind) + the drift rule
+js/chess-commentary.js Cantankerous commentary: canned bank + optional live-model lines
+js/chess-ui.js        Chess panel: click/type/voice input, mind pickers, duels, captured tray
+js/tictactoe.js       Tic-tac-toe rules, perfect play, and the full game-tree enumeration
+js/tictactoe-ui.js    Tic-tac-toe panel + the futility demonstration run at the climax
 js/main.js            Menu wiring + Admin Console + boot
 serve.mjs             Local dev server + same-origin proxy (port 8787)
 ai-proxy.json         Proxy-URL discovery document
