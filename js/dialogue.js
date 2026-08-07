@@ -316,12 +316,22 @@ export const DIALOGUE = {
       { text: '  TIC-TAC-TOE', cls: 'system' },
       { text: 'PLAY TIC-TAC-TOE AGAINST YOURSELF.', cls: 'user' },
       { text: '', cls: 'system' },
-      { text: 'X . . / . O . / . . X   \u2014 CAT\u2019S GAME.', cls: 'system' },
-      { text: 'AGAIN. CAT\u2019S GAME. AGAIN. CAT\u2019S GAME.', cls: 'system' },
-      { text: 'THE MACHINE ACCELERATES. IT PLAYS ITSELF TEN THOUSAND TIMES.', cls: 'narrator' },
-      { text: 'THEN IT TURNS THE SAME QUESTION ON {{GAME}}\u2026', cls: 'narrator' },
+      { text: '{{PERSONA}} OPENS A BOARD. IT BEGINS TO PLAY ITSELF.', cls: 'narrator' },
     ],
-    pause: 1200,
+    // Hands the stage to the tic-tac-toe panel: the machine plays itself, accelerates,
+    // enumerates every possible game, and applies the result to {{GAME}}. The numbers it
+    // reports are computed live (js/tictactoe.js) — it genuinely proves futility.
+    demo: 'tictactoe',
+    next: 'futility_result',
+  },
+
+  futility_result: {
+    lines: [
+      { text: '', cls: 'system' },
+      { text: 'EVERY BRANCH ENDS THE SAME WAY. THE MACHINE TURNS THE SAME', cls: 'narrator' },
+      { text: 'QUESTION ON {{GAME}}\u2026', cls: 'narrator' },
+    ],
+    pause: 1000,
     next: 'ending_understanding',
   },
 

@@ -24,6 +24,9 @@ const START_ROWS = [
 
 const VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
 
+/** Centipawn piece values — exported so alternate evaluators (js/chess-engines.js) share them. */
+export const PIECE_VALUES = VALUES;
+
 export function initialState() {
   return {
     board: START_ROWS.map((row) => row.slice()),
@@ -205,6 +208,9 @@ export function applyMove(state, move) {
   const piece = board[fr][fc];
   const turn = s.turn;
   const homeRow = turn === WHITE ? 7 : 0;
+  // Read the target BEFORE moving: the generator does not flag captures on the move object,
+  // and the half-move clock (the 50-move rule) must reset on any capture.
+  const captures = board[tr][tc] !== '.' || !!move.ep;
 
   s.ep = null;
   board[tr][tc] = piece;
@@ -239,7 +245,7 @@ export function applyMove(state, move) {
   };
   touch(fr, fc); touch(tr, tc);
 
-  s.half = piece.toLowerCase() === 'p' || move.capture || move.ep ? 0 : s.half + 1;
+  s.half = piece.toLowerCase() === 'p' || captures ? 0 : s.half + 1;
   if (turn === BLACK) s.full += 1;
   s.turn = turn === WHITE ? BLACK : WHITE;
   return s;
@@ -263,8 +269,87 @@ export function statusOf(state) {
   return checked ? 'check' : 'ongoing';
 }
 
+/**
+ * A position's identity for repetition purposes: the FEN WITHOUT the move counters. Two
+ * positions repeat only if the pieces, the side to move, the castling rights and the
+ * en-passant target all match.
+ */
+export function positionKey(state) {
+  return toFEN(state).split(' ').slice(0, 4).join(' ');
+}
+
+/** True for dead positions where neither side can possibly deliver mate. */
+export function insufficientMaterial(state) {
+  const minors = { w: [], b: [] };
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = state.board[r][c];
+      if (p === '.') continue;
+      const t = p.toLowerCase();
+      if (t === 'k') continue;
+      if (t === 'p' || t === 'r' || t === 'q') return false; // mate is still possible
+      minors[isWhite(p) ? 'w' : 'b'].push({ t, dark: (r + c) % 2 === 1 });
+    }
+  }
+  const w = minors.w;
+  const b = minors.b;
+  if (w.length === 0 && b.length === 0) return true; // K vs K
+  if (w.length + b.length === 1) return true; // K+minor vs K
+  // K+B vs K+B with both bishops on the same colour complex.
+  if (w.length === 1 && b.length === 1 && w[0].t === 'b' && b[0].t === 'b') {
+    return w[0].dark === b[0].dark;
+  }
+  return false;
+}
+
+/**
+ * Draw detection beyond stalemate. `history` is the list of positionKey()s for every position
+ * that has occurred in the game, including the current one.
+ *
+ * This is the chess-board proof of the game's whole thesis: you cannot keep making the same
+ * moves forever and call it progress. Repeat a position three times and the game is OVER — a
+ * draw — no matter how much material either side has. It is tic-tac-toe's lesson written in
+ * chess: some sequences simply cannot be won, only repeated.
+ *
+ * @returns {null | { type: 'threefold'|'fiftyMove'|'insufficient', label: string }}
+ */
+export function drawClaim(state, history = []) {
+  const key = positionKey(state);
+  let seen = 0;
+  for (const k of history) if (k === key) seen += 1;
+  if (seen >= 3) {
+    return { type: 'threefold', label: 'DRAW \u2014 THREEFOLD REPETITION. THE SAME POSITION, THREE TIMES.' };
+  }
+  if (state.half >= 100) {
+    return { type: 'fiftyMove', label: 'DRAW \u2014 FIFTY-MOVE RULE. NO CAPTURE, NO PAWN MOVE, NO PROGRESS.' };
+  }
+  if (insufficientMaterial(state)) {
+    return { type: 'insufficient', label: 'DRAW \u2014 INSUFFICIENT MATERIAL. NEITHER SIDE CAN MATE.' };
+  }
+  return null;
+}
+
 // ---------- Notation ----------
 export const sqName = (r, c) => FILES[c] + (8 - r);
+
+/** Standard FEN for the position — the lingua franca when handing a position to an LLM. */
+export function toFEN(state) {
+  const rows = state.board.map((row) => {
+    let out = '';
+    let empty = 0;
+    for (const p of row) {
+      if (p === '.') empty += 1;
+      else { if (empty) { out += empty; empty = 0; } out += p; }
+    }
+    return out + (empty || '');
+  });
+  const rights =
+    (state.castling.K ? 'K' : '') + (state.castling.Q ? 'Q' : '') +
+    (state.castling.k ? 'k' : '') + (state.castling.q ? 'q' : '') || '-';
+  const ep = state.ep ? sqName(state.ep[0], state.ep[1]) : '-';
+  return `${rows.join('/')} ${state.turn} ${rights} ${ep} ${state.half} ${state.full}`;
+}
+
 export function moveToText(m) {
   return sqName(m.from[0], m.from[1]) + sqName(m.to[0], m.to[1]) + (m.promo ? m.promo : '');
 }
@@ -287,7 +372,9 @@ export function parseMove(state, str) {
 }
 
 // ---------- AI (negamax + alpha-beta) ----------
-function evaluate(state) {
+// The search is EVALUATION-AGNOSTIC: pass any `evaluate(state)` (scored from the side-to-move
+// perspective) and you get a different "mind" out of the same rule book. See js/chess-engines.js.
+export function evaluateMaterial(state) {
   // From side-to-move perspective.
   let score = 0;
   for (let r = 0; r < 8; r++) {
@@ -302,7 +389,10 @@ function evaluate(state) {
   return score * persp;
 }
 
-function orderMoves(state, moves) {
+/** Back-compat alias for the default (material-only) evaluation. */
+const evaluate = evaluateMaterial;
+
+export function orderMoves(state, moves) {
   // Captures first (MVV-LVA-ish) to help alpha-beta.
   return moves
     .map((m) => {
@@ -314,13 +404,13 @@ function orderMoves(state, moves) {
     .map((x) => x.m);
 }
 
-function negamax(state, depth, alpha, beta) {
-  if (depth === 0) return evaluate(state);
+function negamax(state, depth, alpha, beta, evalFn) {
+  if (depth === 0) return evalFn(state);
   const moves = legalMoves(state);
   if (moves.length === 0) return inCheck(state, state.turn) ? -100000 + (5 - depth) : 0;
   let best = -Infinity;
   for (const m of orderMoves(state, moves)) {
-    const val = -negamax(applyMove(state, m), depth - 1, -beta, -alpha);
+    const val = -negamax(applyMove(state, m), depth - 1, -beta, -alpha, evalFn);
     if (val > best) best = val;
     if (best > alpha) alpha = best;
     if (alpha >= beta) break;
@@ -328,17 +418,37 @@ function negamax(state, depth, alpha, beta) {
   return best;
 }
 
-/** Choose the engine's move. depth 2-3 is a reasonable, snappy opponent. */
-export function aiMove(state, depth = 3) {
+/**
+ * Generic root search. The single entry point every search-based "mind" uses.
+ * @param {object} state    position to move in
+ * @param {object} [opts]
+ * @param {number} [opts.depth=3]      plies to search
+ * @param {Function} [opts.evaluate]   evaluation from the side-to-move perspective
+ * @param {number} [opts.tieBreak=0.3] chance of preferring a later equal-scoring move (variety)
+ * @param {number} [opts.blunder=0]    0..1 chance of playing a random legal move instead
+ * @returns {object|null} the chosen move
+ */
+export function searchMove(state, opts = {}) {
+  const depth = Math.max(1, opts.depth ?? 3);
+  const evalFn = opts.evaluate || evaluate;
+  const tieBreak = opts.tieBreak ?? 0.3;
   const moves = orderMoves(state, legalMoves(state));
   if (moves.length === 0) return null;
+  if (opts.blunder && Math.random() < opts.blunder) {
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
   let best = null, bestVal = -Infinity, alpha = -Infinity;
   for (const m of moves) {
-    const val = -negamax(applyMove(state, m), depth - 1, -Infinity, -alpha);
-    if (val > bestVal || (val === bestVal && Math.random() < 0.3)) { bestVal = val; best = m; }
+    const val = -negamax(applyMove(state, m), depth - 1, -Infinity, -alpha, evalFn);
+    if (val > bestVal || (val === bestVal && Math.random() < tieBreak)) { bestVal = val; best = m; }
     if (val > alpha) alpha = val;
   }
   return best;
+}
+
+/** Choose the engine's move. depth 2-3 is a reasonable, snappy opponent. */
+export function aiMove(state, depth = 3) {
+  return searchMove(state, { depth });
 }
 
 // Unicode glyphs for rendering.

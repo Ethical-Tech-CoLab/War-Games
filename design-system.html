@@ -207,6 +207,61 @@
     </section>
 
     <section class="ds-section">
+      <h2>CAPTURED-PIECE TRAY (chess panel)</h2>
+      <p class="ds-note">Pieces taken out of play, per side, under the move log
+        (<code>.cp-taken</code>). Amber label (<code>--amber</code>), solid monochrome piece
+        glyphs with the shared phosphor bleed — White uses <code>--fg-bright</code>, Black
+        <code>--fg-dim</code>, exactly as on the board. The material edge badge
+        (<code>.cp-taken-edge</code>) uses <code>--fg-bright</code> + <code>--glow</code>.</p>
+      <div class="cp-taken" style="max-width: 30rem">
+        <div class="cp-taken-row">
+          <span class="cp-taken-label">WHITE LOST</span>
+          <span class="cp-taken-pieces">
+            <span class="cp-taken-piece white-piece">&#9819;</span>
+            <span class="cp-taken-piece white-piece">&#9822;</span>
+            <span class="cp-taken-piece white-piece">&#9823;</span>
+            <span class="cp-taken-piece white-piece">&#9823;</span>
+          </span>
+          <span class="cp-taken-edge"></span>
+        </div>
+        <div class="cp-taken-row">
+          <span class="cp-taken-label">BLACK LOST</span>
+          <span class="cp-taken-pieces">
+            <span class="cp-taken-piece black-piece">&#9823;</span>
+            <span class="cp-taken-piece black-piece">&#9823;</span>
+          </span>
+          <span class="cp-taken-edge">+9.4</span>
+        </div>
+      </div>
+      <p class="ds-note">Log voices in the same panel: <code>.cp-log-entry</code> (moves, dim),
+        <code>.cp-say</code> (commentary, <code>--echo</code>, italic),
+        <code>.cp-say.long</code> (gloat/coach, <code>--amber</code>),
+        <code>.cp-announce</code> (spoken move text, dim) and <code>.cp-sys</code>
+        (machine bookkeeping such as MIND DRIFT, <code>--amber</code>, uppercase).</p>
+    </section>
+
+    <section class="ds-section">
+      <h2>TIC-TAC-TOE BOARD</h2>
+      <p class="ds-note">The tic-tac-toe panel is the <strong>same surface</strong> as the chess
+        panel (<code>.ttt-panel</code> shares <code>.chess-panel</code>'s rule) and its squares
+        share <code>.cp-sq</code>; only the 3&times;3 grid and glyph size differ. X uses
+        <code>--fg-bright</code>, O uses <code>--fg-dim</code> — the same bright/dim pairing the
+        chess pieces use, so both games read as one machine.</p>
+      <div class="tt-board" style="width: 12rem; margin: 0">
+        <button class="tt-sq x" type="button">X</button>
+        <button class="tt-sq o" type="button">O</button>
+        <button class="tt-sq" type="button"></button>
+        <button class="tt-sq" type="button"></button>
+        <button class="tt-sq x win" type="button">X</button>
+        <button class="tt-sq o" type="button">O</button>
+        <button class="tt-sq o" type="button">O</button>
+        <button class="tt-sq" type="button"></button>
+        <button class="tt-sq x" type="button">X</button>
+      </div>
+      <div class="tt-tally" style="text-align: left">GAMES 9 &middot; X 0 &middot; O 0 &middot; DRAWS 9</div>
+    </section>
+
+    <section class="ds-section">
       <h2>EXPORT</h2>
       <div class="ds-actions">
         <button class="ghost-btn" id="ds-copy">COPY :root</button>

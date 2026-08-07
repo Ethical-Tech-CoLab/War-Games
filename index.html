@@ -30,6 +30,7 @@
           <button class="ghost-btn" id="norad-btn" type="button" title="NORAD big board">NORAD</button>
           <button class="ghost-btn" id="pair-btn" type="button" title="Pair a second screen">PAIR</button>
           <button class="ghost-btn icon-only" id="chess-btn" type="button" title="Chess" aria-label="Chess">&#9822;</button>
+          <button class="ghost-btn icon-only" id="ttt-btn" type="button" title="Tic-tac-toe — the game that cannot be won" aria-label="Tic-tac-toe"><svg class="ttt-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="8.6" y="2" width="1.8" height="20" rx="0.6"/><rect x="13.6" y="2" width="1.8" height="20" rx="0.6"/><rect x="2" y="8.6" width="20" height="1.8" rx="0.6"/><rect x="2" y="13.6" width="20" height="1.8" rx="0.6"/></svg></button>
           <button class="ghost-btn" id="console-btn" type="button">CONSOLE</button>
           <button class="ghost-btn" id="restart-btn" type="button">RESTART</button>
         </div>
@@ -196,7 +197,7 @@
 
           <section class="ac-section">
             <div class="ac-section-head"><span>CHESS CONFIG</span></div>
-            <label class="ac-field"><span>Commentary</span>
+            <label class="ac-field"><span>Spoken commentary</span>
               <input type="checkbox" id="cp-talk" /></label>
             <label class="ac-field col"><span>Commentary voice</span>
               <select id="cp-tone">
@@ -204,7 +205,15 @@
                 <option value="normal">Normal — Joshua</option>
                 <option value="professor">Professor</option>
                 <option value="berserk">Berserk</option>
+                <option value="cantankerous">Cantankerous</option>
               </select></label>
+            <label class="ac-field"><span>Mind drift (swap minds mid-game when you lead)</span>
+              <input type="checkbox" id="cp-drift" /></label>
+            <label class="ac-field"><span>Live model commentary</span>
+              <input type="checkbox" id="cp-live" /></label>
+            <p class="ac-note">The rule book never changes; only the <em>mind</em> choosing the moves does. Pick one on
+              the board panel, or let MIND DRIFT swap it mid-game while you are ahead. Live commentary asks the
+              configured Live-AI model for a bespoke line and falls back to the canned bank when unreachable.</p>
           </section>
 
           <section class="ac-section">
@@ -217,13 +226,16 @@
         </div>
       </aside>
 
-      <!-- Optional chess panel: play the built-in engine (local, no network). Click squares
-           or type coordinate moves like e2e4. The board repaints on every move. -->
+      <!-- Optional chess panel: play a SWAPPABLE "mind" (js/chess-engines.js) over the fixed
+           rule book (js/chess.js). Click squares or type coordinate moves like e2e4; change
+           the machine's mind at any time (even mid-game); or set two minds against each other
+           with AI vs AI. The board repaints on every move. -->
       <aside class="chess-panel" id="chess-panel" aria-label="Chess" hidden>
         <div class="cp-head">
           <div class="cp-actions">
             <button class="ghost-btn" id="cp-new" type="button">NEW</button>
             <button class="ghost-btn" id="cp-flip" type="button">PLAY BLACK</button>
+            <button class="ghost-btn" id="cp-duel" type="button" title="Set two minds against each other">AI vs AI</button>
             <button class="ghost-btn" id="cp-close" type="button">CLOSE</button>
           </div>
         </div>
@@ -234,7 +246,51 @@
           <button class="ghost-btn" id="cp-mic" type="button" title="Speak your move" aria-label="Speak your move"><svg class="mic-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0h-2a4.5 4.5 0 0 1-9 0z"/><rect x="11" y="17" width="2" height="3.6"/><rect x="7.5" y="20.6" width="9" height="2" rx="1"/></svg></button>
           <button class="ghost-btn" id="cp-play" type="button">MOVE</button>
         </div>
+        <!-- Which "mind" chooses the machine's moves. Swappable at any time, including
+             mid-game (see MIND DRIFT in the Console). Populated from js/chess-engines.js. -->
+        <div class="cp-mind-row">
+          <span class="cp-mind-slot">
+            <label class="cp-mind-label" id="cp-mind-label" for="cp-mind">MIND</label>
+            <select id="cp-mind" class="cp-mind" aria-label="Machine mind"></select>
+          </span>
+          <span class="cp-mind-slot" hidden>
+            <label class="cp-mind-label" id="cp-mind-alt-label" for="cp-mind-alt">BLACK</label>
+            <select id="cp-mind-alt" class="cp-mind" aria-label="Black mind"></select>
+          </span>
+        </div>
+        <p class="cp-mind-note" id="cp-mind-note"></p>
         <div class="cp-log" id="cp-log" aria-label="move log"></div>
+        <!-- Pieces taken out of play, per side, with the material edge. -->
+        <div class="cp-taken" aria-label="captured pieces">
+          <div class="cp-taken-row">
+            <span class="cp-taken-label">WHITE LOST</span>
+            <span class="cp-taken-pieces" id="cp-taken-w"></span>
+            <span class="cp-taken-edge" id="cp-edge-w"></span>
+          </div>
+          <div class="cp-taken-row">
+            <span class="cp-taken-label">BLACK LOST</span>
+            <span class="cp-taken-pieces" id="cp-taken-b"></span>
+            <span class="cp-taken-edge" id="cp-edge-b"></span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Tic-tac-toe: the game the machine is taught with. Playable on its own (the machine
+           plays perfectly, so a draw is the best a human can do) and the surface the story's
+           futility climax runs on — see TicTacToePanel.runFutilityDemo() in js/tictactoe-ui.js. -->
+      <aside class="ttt-panel" id="ttt-panel" aria-label="Tic-tac-toe" hidden>
+        <div class="cp-head">
+          <div class="cp-actions">
+            <button class="ghost-btn" id="ttt-new" type="button">NEW</button>
+            <button class="ghost-btn" id="ttt-flip" type="button">PLAY O</button>
+            <button class="ghost-btn" id="ttt-learn" type="button" title="Make it play itself until it learns">LEARN</button>
+            <button class="ghost-btn" id="ttt-close" type="button">CLOSE</button>
+          </div>
+        </div>
+        <div class="cp-status" id="ttt-status">Your move (X).</div>
+        <div class="tt-board" id="ttt-board"></div>
+        <div class="tt-tally" id="ttt-tally">GAMES 0 &middot; X 0 &middot; O 0 &middot; DRAWS 0</div>
+        <div class="cp-log" id="ttt-log" aria-label="game log"></div>
       </aside>
 
       <!-- NORAD big board: a swappable, full-screen war-room scene. Dramatizes {{SYSTEM}} /

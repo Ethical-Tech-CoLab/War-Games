@@ -118,6 +118,17 @@ Size ladder (rem): `1.5` title · `1.3` entry title · `1.0` body/primary-btn ·
   `.menu-overlay`, `.telemetry-overlay`, `.wiki-overlay`.
 - **Status bar.** `.defcon` (label + value + red rung ladder) on the left; `.status-right` row of
   `.ghost-btn`s on the right. The NORAD board reuses the **same** `.defcon` markup.
+- **Captured-piece tray** (`.cp-taken`, chess panel). Two rows under the move log listing the pieces
+  taken out of play per side: amber `.cp-taken-label`, solid piece glyphs coloured exactly as on the
+  board (`--fg-bright` White / `--fg-dim` Black + phosphor bleed), and a `.cp-taken-edge` material
+  badge in `--fg-bright` + `--glow`. See the demo in [design-system.html](design-system.html).
+- **Chess log voices.** `.cp-log-entry` (moves, dim) · `.cp-say` (commentary, `--echo`, italic) ·
+  `.cp-say.long` (gloat/coach, `--amber`) · `.cp-announce` (spoken move text, dim) · `.cp-sys`
+  (machine bookkeeping such as MIND DRIFT / MODEL UNREACHABLE, `--amber`, uppercase, `pre-wrap`
+  so tabulated read-outs keep their columns). The tic-tac-toe panel reuses these same voices.
+- **Mini-game panels are one surface.** `.chess-panel` and `.ttt-panel` share a single rule — same
+  width, glow, size-container and scroll — and `.tt-sq` shares `.cp-sq`. A second mini-game must
+  extend those selectors, never copy their values.
 - **CRT treatment.** `.scanlines`, `.flicker`, `.crt::after` refresh roll, monitor bezel + grime.
   Always on; respects `prefers-reduced-motion`.
 
@@ -164,3 +175,13 @@ Record brand-affecting changes here so the tokens and this file never drift.
   outlined ghost style; NORAD DEFCON now reuses the bedroom `.defcon` markup + red ladder; added the
   `--echo`-accented **Field Briefings** wiki surface; added the design-system inspector. No token
   values changed — only new components and this catalog.
+- **Chess minds cycle:** added the chess **mind picker** row (`.cp-mind-row`, themed `.wg-select`
+  with an amber label + a `--fg-dim` blurb), the **captured-piece tray** (`.cp-taken`) and the
+  `.cp-sys` log voice; `#cp-duel.on` uses the inverted `--fg-dim` fill to read as engaged. Fixed the
+  ≤600px `.chess-panel` rule (`100vw` → `100%`) — at `100vw` the panel's left edge fell outside the
+  inset `.crt` and clipped every left-aligned label. No token values changed.
+- **Futility cycle:** added the **tic-tac-toe panel**, which shares `.chess-panel`'s surface rule
+  and `.cp-sq`'s square treatment rather than redefining them (`.tt-board`, `.tt-sq`, `.tt-tally`
+  are the only new rules). X = `--fg-bright`, O = `--fg-dim`, matching the chess White/Black
+  pairing. The status-bar tic-tac-toe icon is a **solid** `currentColor` SVG grid with the shared
+  phosphor bleed, to sit beside the ♞ glyph. No token values changed.
