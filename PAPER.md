@@ -2,7 +2,7 @@
 
 ## Rebuilding *WarGames* (1983) as a Playable Study of Autonomous AI Agents
 
-**Ethical Tech CoLab** · NYU Center for Global Affairs · August 2026
+**Ethical Tech CoLab** · NYU Center for Global Affairs · July 2026
 
 Carolina Morón. Prepared as masters research at the NYU Center for Global Affairs.
 The playable artefact, the simulation harness, and the raw run records are in the
