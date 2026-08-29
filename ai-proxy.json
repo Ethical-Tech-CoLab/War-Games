@@ -1,7 +1,12 @@
 {
-  "_comment": "Canonical AI-proxy discovery for Ethical Tech CoLab GitHub Pages tools. Served same-origin at https://ethical-tech-colab.github.io/War-Games/ai-proxy.json so any org Pages app can fetch it to learn the CURRENT proxy URL without hardcoding an ephemeral tunnel URL. Update this one file when the tunnel rotates (the B3IQ box can auto-publish it; see deploy/b3iq/publish-url.sh in the pages-ai-proxy repo).",
-  "proxyUrl": "https://rss-junior-ireland-scenes.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-07-24",
-  "cloudModels": ["openai/gpt-4o-mini", "openai/gpt-4o"],
-  "localModels": ["gemma3:12b", "qwen3:14b", "deepseek-r1:8b", "hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
+  "_comment": "Canonical AI-proxy discovery for Ethical Tech CoLab GitHub Pages tools. Quick-tunnel URLs are ephemeral; use a named tunnel before claiming an availability target.",
+  "proxyUrl": "https://distinction-das-may-commissions.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-08-29T16:46:32Z",
+  "cloudModels": [],
+  "localModels": [
+    "gemma3:12b",
+    "qwen3:14b",
+    "deepseek-r1:8b",
+    "hf.co/unsloth/Qwen3.6-27B-GGUF:latest"
+  ]
 }
