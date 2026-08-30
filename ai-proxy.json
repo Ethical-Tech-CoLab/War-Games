@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://edmonton-cycle-rated-toolbar.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-08-29T17:17:51Z",
+  "proxyUrl": "https://api.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-08-30T23:53:28Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
