@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://everyone-footage-unless-edit.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-09-02T09:23:48Z",
+  "proxyUrl": "https://features-well-marketing-routes.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-09-03T09:45:18Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
