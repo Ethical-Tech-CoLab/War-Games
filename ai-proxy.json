@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://gmc-classical-red-underwear.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-09-08T07:02:49Z",
+  "proxyUrl": "https://horn-shall-reasoning-estimated.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-09-08T18:54:00Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
