@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://circulation-stay-britney-folding.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-09-10T01:32:22Z",
+  "proxyUrl": "https://brakes-destination-hostels-vancouver.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-09-10T03:53:59Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
