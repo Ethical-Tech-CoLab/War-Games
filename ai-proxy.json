@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://combine-recorders-rover-ellis.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-09-11T17:08:30Z",
+  "proxyUrl": "https://restructuring-merry-suited-revenues.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-09-12T17:54:43Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
