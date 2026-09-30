@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://hoped-acting-missed-designs.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-09-30T00:00:49Z",
+  "proxyUrl": "https://sound-buses-philosophy-amendment.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-09-30T23:31:38Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
