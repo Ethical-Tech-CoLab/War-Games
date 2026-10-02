@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://api.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-10-02T16:58:21Z",
+  "proxyUrl": "https://guarantees-races-cell-big.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-10-02T16:58:40Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
