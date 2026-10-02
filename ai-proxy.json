@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://demand-studios-parliament-ict.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-10-02T02:39:13Z",
+  "proxyUrl": "https://api.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-10-02T16:58:21Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
