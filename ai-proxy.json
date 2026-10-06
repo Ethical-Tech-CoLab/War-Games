@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://canal-beverage-photographers-integral.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-10-02T19:51:16Z",
+  "proxyUrl": "https://api.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-10-06T21:52:33Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
