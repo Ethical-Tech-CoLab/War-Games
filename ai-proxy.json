@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://schedule-wit-newsletters-respected.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-10-23T08:17:46Z",
+  "proxyUrl": "https://talked-wedding-sector-holmes.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-10-23T10:18:25Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
