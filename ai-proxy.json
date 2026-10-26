@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://talked-wedding-sector-holmes.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-10-23T10:18:25Z",
+  "proxyUrl": "https://exclusive-mediterranean-ferrari-renewal.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-10-26T11:30:46Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
