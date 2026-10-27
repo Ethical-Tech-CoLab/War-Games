@@ -1,6 +1,6 @@
 {
-  "proxyUrl": "https://substitute-plugins-map-transaction.trycloudflare.com/v1/chat/completions",
-  "updated": "2026-10-26T11:31:52Z",
+  "proxyUrl": "https://advisors-monetary-relaxation-musical.trycloudflare.com/v1/chat/completions",
+  "updated": "2026-10-27T01:47:52Z",
   "cloudModels": [],
   "localModels": ["gemma3:12b","qwen3:14b","deepseek-r1:8b","hf.co/unsloth/Qwen3.6-27B-GGUF:latest"]
 }
